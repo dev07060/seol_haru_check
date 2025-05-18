@@ -96,131 +96,142 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 12, offset: Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4)),
                     ],
                   ),
-                  child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    columnWidths: const {0: FixedColumnWidth(150)},
-                    children: [
-                      TableRow(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F7F9),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            alignment: Alignment.center,
-                            child: const Text(
-                              '참여자',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF4A4A4A)),
-                            ),
-                          ),
-                          ...weekDates.map(
-                            (d) => Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              alignment: Alignment.center,
-                              child: Text(
-                                days[d.weekday % 7],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: Color(0xFF4A4A4A),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      ...users.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final user = entry.value;
-                        return TableRow(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Table(
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      columnWidths: const {0: FixedColumnWidth(150)},
+                      children: [
+                        TableRow(
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            border:
-                                index < users.length - 1
-                                    ? Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1))
-                                    : null,
+                            color: const Color(0xFFF6F7F9),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
                           ),
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                children: [
-                                  const CircleAvatar(radius: 14, backgroundColor: Color(0xFFE0E0E0)),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      user.name,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 15,
-                                        color: Color(0xFF4A4A4A),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                '참여자',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF4A4A4A)),
                               ),
                             ),
-                            ...weekDates.map((date) {
-                              final status = getStatus(user.uuid, date);
-                              final isToday =
-                                  DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
-                              final isPast = date.isBefore(today);
-
-                              Color bgColor;
-                              Widget child;
-                              VoidCallback? onTap;
-
-                              if (status == true) {
-                                log(
-                                  'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
-                                );
-                                bgColor = const Color(0xFFDFF6E4);
-                                child = const Icon(Icons.check, color: Color(0xFF2E7D32), size: 20);
-                                onTap = () => showCertificationDialog(user, context);
-                              } else if (status == false) {
-                                bgColor = const Color(0xFFFDECEA);
-                                child = const Icon(Icons.close, color: Color(0xFFC62828), size: 20);
-                              } else if (isToday) {
-                                bgColor = const Color(0xFFE3F2FD);
-                                child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 20);
-                                onTap = () => showAddCertificationDialog(user, context);
-                              } else if (isPast) {
-                                bgColor = const Color(0xFFF7F7F7);
-                                child = const Text(
-                                  '-',
-                                  style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
-                                );
-                              } else {
-                                bgColor = const Color(0xFFF7F7F7);
-                                child = const Text(
-                                  '-',
-                                  style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
-                                );
-                              }
-
-                              return GestureDetector(
-                                onTap: onTap,
-                                child: Container(
-                                  height: 40,
-                                  margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                                  decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-                                  child: Center(child: child),
+                            ...weekDates.map(
+                              (d) => Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  days[d.weekday % 7],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Color(0xFF4A4A4A),
+                                  ),
                                 ),
-                              );
-                            }),
+                              ),
+                            ),
                           ],
-                        );
-                      }),
-                    ],
+                        ),
+                        ...users.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final user = entry.value;
+                          return TableRow(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border:
+                                  index < users.length - 1
+                                      ? Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1))
+                                      : null,
+                            ),
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  children: [
+                                    const CircleAvatar(radius: 14, backgroundColor: Color(0xFFE0E0E0)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        user.name,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 15,
+                                          color: Color(0xFF4A4A4A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ...weekDates.map((date) {
+                                final status = getStatus(user.uuid, date);
+                                final isToday =
+                                    DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
+                                final isPast = date.isBefore(today);
+
+                                Color bgColor;
+                                Widget child;
+                                VoidCallback? onTap;
+
+                                if (status == true) {
+                                  log(
+                                    'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
+                                  );
+                                  bgColor = const Color(0xFFDFF6E4);
+                                  child = const Icon(Icons.check, color: Color(0xFF2E7D32), size: 20);
+                                  onTap = () => showCertificationDialog(user, context);
+                                } else if (status == false) {
+                                  bgColor = const Color(0xFFFDECEA);
+                                  child = const Icon(Icons.close, color: Color(0xFFC62828), size: 20);
+                                } else if (isToday) {
+                                  bgColor = const Color(0xFFE3F2FD);
+                                  child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 20);
+                                  onTap = () => showAddCertificationDialog(user, context);
+                                } else if (isPast) {
+                                  bgColor = const Color(0xFFF7F7F7);
+                                  child = const Text(
+                                    '-',
+                                    style: TextStyle(
+                                      color: Color(0xFF9E9E9E),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  );
+                                } else {
+                                  bgColor = const Color(0xFFF7F7F7);
+                                  child = const Text(
+                                    '-',
+                                    style: TextStyle(
+                                      color: Color(0xFF9E9E9E),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  );
+                                }
+
+                                return GestureDetector(
+                                  onTap: onTap,
+                                  child: Container(
+                                    height: 40,
+                                    margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                                    decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                                    child: Center(child: child),
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
