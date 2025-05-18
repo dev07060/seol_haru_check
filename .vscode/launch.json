@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "haru-check",
+            "cwd": "${workspaceFolder}",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": [
+                "-t",
+                "lib/main.dart"
+            ],
+            "deviceId": "chrome"
+        }
+    ]
+}
