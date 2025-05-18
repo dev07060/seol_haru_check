@@ -109,7 +109,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                       ),
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           alignment: Alignment.center,
                           child: const Text(
                             '참여자',
@@ -118,7 +118,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                         ),
                         ...weekDates.map(
                           (d) => Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             alignment: Alignment.center,
                             child: Text(
                               days[d.weekday % 7],
@@ -145,11 +145,12 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                         ),
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                            width: 40,
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                             alignment: Alignment.centerLeft,
                             child: Row(
                               children: [
-                                const CircleAvatar(radius: 14, backgroundColor: Color(0xFFE0E0E0)),
+                                const CircleAvatar(radius: 10, backgroundColor: Color(0xFFE0E0E0)),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -179,14 +180,14 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                 'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
                               );
                               bgColor = const Color(0xFFDFF6E4);
-                              child = const Icon(Icons.check, color: Color(0xFF2E7D32), size: 20);
+                              child = const Icon(Icons.check, color: Color(0xFF2E7D32), size: 16);
                               onTap = () => showCertificationDialog(user, context);
                             } else if (status == false) {
                               bgColor = const Color(0xFFFDECEA);
-                              child = const Icon(Icons.close, color: Color(0xFFC62828), size: 20);
+                              child = const Icon(Icons.close, color: Color(0xFFC62828), size: 16);
                             } else if (isToday) {
                               bgColor = const Color(0xFFE3F2FD);
-                              child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 20);
+                              child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
                               onTap = () => showAddCertificationDialog(user, context);
                             } else if (isPast) {
                               bgColor = const Color(0xFFF7F7F7);
@@ -205,9 +206,9 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                             return GestureDetector(
                               onTap: onTap,
                               child: Container(
-                                height: 28,
-                                width: 28,
-                                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                                height: 32,
+                                width: 32,
+                                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
                                 decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
                                 child: Center(child: child),
                               ),
