@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
+import 'package:seol_haru_check/widgets/show_edit_certification_dialog.dart';
 import 'package:uuid/uuid.dart';
 
 class CertificationTrackerPage extends StatefulWidget {
@@ -202,7 +203,14 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                   });
 
                                   final data = certDoc.data();
-                                  showCertificationDialog(user, data, context);
+                                  data['id'] = certDoc.id; // 문서 ID를 데이터에 추가
+                                  final result = await showEditCertificationDialog(user, data, context); // 수정 다이얼로그 호출
+                                  if (result == true && mounted) {
+                                    await loadData();
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(const SnackBar(content: Text('인증이 수정되었습니다')));
+                                  }
                                 };
                               } else if (status == false) {
                                 bgColor = const Color(0xFFFDECEA);
