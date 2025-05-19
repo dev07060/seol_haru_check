@@ -80,6 +80,7 @@ void showCertificationDialog(
                               (ctx) => AlertDialog(
                                 title: const Text('인증 삭제'),
                                 content: TextField(
+                                  autofocus: true,
                                   controller: passwordController,
                                   decoration: const InputDecoration(labelText: '비밀번호'),
                                   obscureText: true,

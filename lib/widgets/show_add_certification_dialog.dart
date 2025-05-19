@@ -159,6 +159,7 @@ class _AddCertificationFormState extends State<AddCertificationForm> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  autofocus: true,
                   controller: _contentController,
                   decoration: const InputDecoration(labelText: '내용', border: OutlineInputBorder()),
                   maxLines: 2,
