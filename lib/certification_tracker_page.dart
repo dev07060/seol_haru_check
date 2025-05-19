@@ -16,7 +16,7 @@ class CertificationTrackerPage extends StatefulWidget {
 }
 
 class _CertificationTrackerPageState extends State<CertificationTrackerPage> with TableDataFromFirestore {
-  final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
+  final List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
 
   List<User> users = [];
   Map<String, bool> certifications = {};
@@ -25,7 +25,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
   DateTime today = DateTime.now();
 
   List<DateTime> get weekDates {
-    final start = today.subtract(Duration(days: today.weekday % 7));
+    final start = today.subtract(Duration(days: today.weekday - 1)); // Start from Monday
     return List.generate(days.length, (i) => start.add(Duration(days: i)));
   }
 
@@ -126,7 +126,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               alignment: Alignment.center,
                               child: Text(
-                                days[d.weekday % 7],
+                                days[(d.weekday - 1) % 7], // Monday=0, ..., Sunday=6
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
