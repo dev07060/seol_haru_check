@@ -64,7 +64,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
     }
     if (users.isEmpty) {
       return const Scaffold(body: Center(child: Text('참여자가 아직 없습니다')));

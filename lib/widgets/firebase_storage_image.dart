@@ -26,7 +26,7 @@ class FirebaseStorageImage extends StatelessWidget {
         child: CachedNetworkImage(
           fit: BoxFit.cover, // fill 대신 cover 사용하여 비율 유지하면서 채우기
           imageUrl: imageUrl,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+          placeholder: (context, url) => const Center(child: CircularProgressIndicator.adaptive()),
           errorWidget:
               (context, url, error) => Center(
                 child: Container(
