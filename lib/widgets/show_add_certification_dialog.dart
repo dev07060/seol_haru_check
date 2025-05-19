@@ -43,11 +43,12 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                             onPressed: (index) {
                               setState(() => selectedType = index == 0 ? '운동' : '식단');
                             },
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(8),
                             selectedColor: Colors.white,
-                            fillColor: Colors.blue,
-                            color: Colors.blue,
-                            constraints: const BoxConstraints(minHeight: 40, minWidth: 100),
+                            fillColor: const Color(0xFF004DF8),
+                            color: const Color(0xFF004DF8),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            constraints: const BoxConstraints(minHeight: 44, minWidth: 120),
                             children: const [Text('운동'), Text('식단')],
                           ),
                           const SizedBox(height: 16),
@@ -79,8 +80,10 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                                 icon: const Icon(Icons.image),
                                 label: Text(selectedImageBytes == null ? '이미지 선택' : '이미지 변경'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade200,
-                                  foregroundColor: Colors.black,
+                                  backgroundColor: const Color(0xFF004DF8),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 ),
                               ),
                               if (selectedImageBytes != null)
@@ -97,9 +100,22 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.grey.shade700,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('취소'),
+                              ),
                               const SizedBox(width: 8),
                               ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF004DF8),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                ),
                                 onPressed: () async {
                                   if (isUploading) return;
                                   if (contentController.text.trim().isEmpty ||
