@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "seol-haru-check"
-  }
+    "default": "seol-haru-check",
+    "staging": "seol-haru-check"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }
