@@ -74,7 +74,7 @@ void showCertificationDialog(
                       onPressed: () async {
                         final passwordController = TextEditingController();
 
-                        final confirm = await showDialog<bool>(
+                        await showDialog<bool>(
                           context: context,
                           builder:
                               (ctx) => AlertDialog(

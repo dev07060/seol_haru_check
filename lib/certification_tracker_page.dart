@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
-import 'package:seol_haru_check/widgets/%08show_certification_dialog.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
+import 'package:seol_haru_check/widgets/show_certification_dialog.dart';
 import 'package:uuid/uuid.dart';
 
 class CertificationTrackerPage extends StatefulWidget {
@@ -97,7 +97,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 12, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 12, offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Table(
