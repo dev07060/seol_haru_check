@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
-import 'package:seol_haru_check/widgets/show_edit_certification_dialog.dart';
 import 'package:uuid/uuid.dart';
 
 class CertificationTrackerPage extends StatefulWidget {
@@ -203,14 +202,18 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                   });
 
                                   final data = certDoc.data();
-                                  data['id'] = certDoc.id; // 문서 ID를 데이터에 추가
-                                  final result = await showEditCertificationDialog(user, data, context); // 수정 다이얼로그 호출
-                                  if (result == true && mounted) {
-                                    await loadData();
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(const SnackBar(content: Text('인증이 수정되었습니다')));
-                                  }
+                                  showCertificationDialog(
+                                    user,
+                                    data,
+                                    certDoc.id,
+                                    context,
+                                    onDeleted: () async {
+                                      await loadData();
+                                    },
+                                    onUpdated: () async {
+                                      await loadData();
+                                    },
+                                  );
                                 };
                               } else if (status == false) {
                                 bgColor = const Color(0xFFFDECEA);
@@ -345,7 +348,14 @@ class User {
   User({required this.name, required this.uuid});
 }
 
-void showCertificationDialog(User user, Map<String, dynamic> certification, BuildContext context) {
+void showCertificationDialog(
+  User user,
+  Map<String, dynamic> certification,
+  String docId,
+  BuildContext context, {
+  VoidCallback? onDeleted,
+  VoidCallback? onUpdated,
+}) {
   final String photoUrl = certification['photoUrl'] ?? '';
   final String type = certification['type'] ?? '';
   final String content = certification['content'] ?? '';
@@ -386,7 +396,68 @@ void showCertificationDialog(User user, Map<String, dynamic> certification, Buil
                   ],
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('닫기')),
+                Row(
+                  children: [
+                    ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('닫기')),
+                    TextButton(
+                      onPressed: () async {
+                        final passwordController = TextEditingController();
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                title: const Text('인증 삭제'),
+                                content: TextField(
+                                  controller: passwordController,
+                                  decoration: const InputDecoration(labelText: '비밀번호'),
+                                  obscureText: true,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 4,
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+                                  TextButton(
+                                    onPressed: () async {
+                                      final password = passwordController.text.trim();
+                                      final snapshot =
+                                          await FirebaseFirestore.instance
+                                              .collection('users')
+                                              .where('uuid', isEqualTo: user.uuid)
+                                              .limit(1)
+                                              .get();
+
+                                      if (snapshot.docs.isNotEmpty &&
+                                          snapshot.docs.first.data()['password'] == password) {
+                                        await FirebaseFirestore.instance
+                                            .collection('certifications')
+                                            .doc(docId)
+                                            .delete();
+
+                                        Navigator.pop(ctx, true); // 비밀번호 창 닫기
+                                        Navigator.pop(context); // 인증 보기 창 닫기
+                                        onDeleted?.call(); // 콜백 실행
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(const SnackBar(content: Text('인증이 삭제되었습니다')));
+                                      } else {
+                                        Navigator.pop(ctx, false);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(const SnackBar(content: Text('비밀번호가 일치하지 않습니다')));
+                                      }
+                                    },
+                                    child: const Text('삭제'),
+                                  ),
+                                ],
+                              ),
+                        );
+                      },
+                      child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
