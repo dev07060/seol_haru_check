@@ -70,7 +70,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
       return const Scaffold(body: Center(child: Text('참여자가 아직 없습니다')));
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FC),
+      backgroundColor: Colors.grey[300],
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -102,7 +102,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                   ),
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    columnWidths: const {0: FixedColumnWidth(110)},
+                    columnWidths: const {0: FixedColumnWidth(80)},
                     children: [
                       TableRow(
                         decoration: BoxDecoration(
@@ -155,8 +155,10 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                               alignment: Alignment.centerLeft,
                               child: Row(
                                 children: [
-                                  const CircleAvatar(radius: 10, backgroundColor: Color(0xFFE0E0E0)),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 6),
+
+                                  const CircleAvatar(radius: 8, backgroundColor: Color(0xFFE0E0E0)),
+                                  const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       user.name,
