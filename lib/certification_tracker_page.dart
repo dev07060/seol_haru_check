@@ -188,7 +188,6 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                   'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
                                 );
                                 bgColor = const Color(0xFFDFF6E4);
-                                child = const Icon(Icons.check, color: Color(0xFF2E7D32), size: 16);
                                 onTap = () async {
                                   final query =
                                       await FirebaseFirestore.instance
@@ -218,6 +217,45 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                     },
                                   );
                                 };
+                                // Show the number of certifications for that day, not the check icon
+                                // We need to fetch the number of certifications for that day
+                                // However, certDocs is only available inside onTap, so we need to fetch it here as well
+                                child = FutureBuilder<QuerySnapshot>(
+                                  future:
+                                      FirebaseFirestore.instance
+                                          .collection('certifications')
+                                          .where('uuid', isEqualTo: user.uuid)
+                                          .get(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const SizedBox(width: 16, height: 16); // Placeholder
+                                    }
+                                    if (!snapshot.hasData) {
+                                      return const SizedBox(width: 16, height: 16); // Placeholder
+                                    }
+                                    final selectedDate = DateFormat('yyyyMMdd').format(date);
+                                    final certDocs =
+                                        snapshot.data!.docs.where((doc) {
+                                          final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                                          return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
+                                        }).toList();
+                                    return Text(
+                                      certDocs.length == 1
+                                          ? '😀'
+                                          : certDocs.length == 2
+                                          ? '😎'
+                                          : certDocs.length == 3
+                                          ? '🔥'
+                                          : '',
+
+                                      style: const TextStyle(
+                                        color: Color(0xFF2E7D32),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                );
                               } else if (status == false) {
                                 bgColor = const Color(0xFFFDECEA);
                                 child = const Icon(Icons.close, color: Color(0xFFC62828), size: 16);
