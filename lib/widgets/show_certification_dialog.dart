@@ -84,9 +84,9 @@ void showCertificationDialog(
                                   children: [
                                     if (photoUrl.isNotEmpty)
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                                         child: SizedBox(
-                                          height: 200,
+                                          height: 180,
                                           width: double.infinity,
                                           child: FirebaseStorageImage(imagePath: photoUrl),
                                         ),
@@ -178,7 +178,7 @@ void showCertificationDialog(
                                                 child: Text(
                                                   content,
                                                   style: const TextStyle(fontSize: 14),
-                                                  maxLines: 2,
+                                                  maxLines: 3,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),
