@@ -196,18 +196,19 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                           .where('uuid', isEqualTo: user.uuid)
                                           .get();
 
-                                  final certDoc = query.docs.firstWhere((doc) {
-                                    final createdAt = (doc['createdAt'] as Timestamp).toDate();
-                                    return createdAt.year == date.year &&
-                                        createdAt.month == date.month &&
-                                        createdAt.day == date.day;
-                                  });
+                                  final selectedDate = DateFormat('yyyyMMdd').format(date);
 
-                                  final data = certDoc.data();
+                                  final certDocs =
+                                      query.docs.where((doc) {
+                                        final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                                        return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
+                                      }).toList();
+
+                                  final certs = certDocs.map((doc) => {'docId': doc.id, ...doc.data()}).toList();
+
                                   showCertificationDialog(
                                     user,
-                                    data,
-                                    certDoc.id,
+                                    certs,
                                     context,
                                     onDeleted: () async {
                                       await loadData();

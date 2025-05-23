@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
@@ -15,6 +16,45 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
   final passwordController = TextEditingController();
   Uint8List? selectedImageBytes;
   bool isUploading = false;
+
+  // 이미지 압축 함수
+  Future<Uint8List?> compressImage(Uint8List imageBytes) async {
+    try {
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minHeight: 800,
+        minWidth: 600,
+        quality: 70, // 0-100, 낮을수록 더 압축됨
+        format: CompressFormat.jpeg,
+      );
+
+      log('Original size: ${imageBytes.length} bytes');
+      log('Compressed size: ${compressedBytes.length} bytes');
+      log('Compression ratio: ${(compressedBytes.length / imageBytes.length * 100).toStringAsFixed(1)}%');
+
+      return compressedBytes;
+    } catch (e) {
+      log('Image compression failed: $e');
+      return imageBytes; // 압축 실패시 원본 반환
+    }
+  }
+
+  // 하루 업로드 개수 확인 함수
+  Future<int> getTodayUploadCount(String userUuid) async {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final query =
+        await FirebaseFirestore.instance
+            .collection('certifications')
+            .where('uuid', isEqualTo: userUuid)
+            .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
+            .where('createdAt', isLessThan: endOfDay)
+            .get();
+
+    return query.docs.length;
+  }
 
   return showDialog(
     context: context,
@@ -37,6 +77,8 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text('인증 추가하기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          const SizedBox(height: 8),
+                          const Text('하루 최대 3개까지 업로드 가능', style: TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(height: 16),
                           ToggleButtons(
                             isSelected: [selectedType == '운동', selectedType == '식단'],
@@ -72,8 +114,10 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                                   final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
                                   if (picked != null) {
                                     final bytes = await picked.readAsBytes();
+                                    // 이미지 압축 적용
+                                    final compressedBytes = await compressImage(bytes);
                                     setState(() {
-                                      selectedImageBytes = bytes;
+                                      selectedImageBytes = compressedBytes;
                                     });
                                   }
                                 },
@@ -126,9 +170,31 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
                                     ).showSnackBar(const SnackBar(content: Text('내용, 이미지, 비밀번호를 모두 입력해주세요')));
                                     return;
                                   }
+
                                   setState(() => isUploading = true);
 
                                   try {
+                                    // 하루 업로드 제한 확인
+                                    final todayCount = await getTodayUploadCount(user.uuid);
+                                    if (todayCount >= 3) {
+                                      setState(() => isUploading = false);
+                                      await showDialog(
+                                        context: context,
+                                        builder:
+                                            (context) => AlertDialog(
+                                              title: const Text('업로드 제한'),
+                                              content: const Text('하루에 최대 3개까지만 업로드할 수 있습니다.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text('확인'),
+                                                ),
+                                              ],
+                                            ),
+                                      );
+                                      return;
+                                    }
+
                                     // Fetch user document by querying for uuid field (not by doc id)
                                     final userQuery =
                                         await FirebaseFirestore.instance
@@ -162,7 +228,9 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
 
                                     final now = DateTime.now();
                                     final formattedDate = DateFormat('yyyyMMdd').format(now);
-                                    final filename = '${user.uuid}_$formattedDate.jpg';
+                                    final timestamp = DateFormat('HHmmss').format(now);
+                                    // 고유한 파일명 생성 (날짜 + 시간 + 카운트)
+                                    final filename = '${user.uuid}_${formattedDate}_${timestamp}_${todayCount + 1}.jpg';
 
                                     final storageRef = FirebaseStorage.instance.ref().child('certifications/$filename');
                                     final uploadTask = await storageRef.putData(selectedImageBytes!);
