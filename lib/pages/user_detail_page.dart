@@ -63,7 +63,7 @@ class _UserDetailPageState extends State<UserDetailPage> {
               ? const Center(child: CircularProgressIndicator.adaptive())
               : ListView.builder(
                 itemCount: certifications.length,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 itemBuilder: (_, index) {
                   final cert = certifications[index];
                   final date = (cert['createdAt'] as Timestamp).toDate();
