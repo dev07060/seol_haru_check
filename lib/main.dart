@@ -1,8 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:seol_haru_check/certification_tracker_page.dart';
 import 'package:seol_haru_check/firebase_options.dart';
+import 'package:seol_haru_check/router.dart';
 
 void main() async {
   // Ensure Flutter is initialized for async operations
@@ -23,10 +23,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: '운동 체크',
+      routerConfig: router, // go_router 라우터 사용
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue), useMaterial3: true),
-      home: const CertificationTrackerPage(),
     );
   }
 }

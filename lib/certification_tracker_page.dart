@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
@@ -133,10 +134,15 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                       const CircleAvatar(radius: 8, backgroundColor: Color(0xFFE0E0E0)),
                       const Gap(6),
                       Expanded(
-                        child: Text(
-                          user.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Color(0xFF4A4A4A)),
+                        child: GestureDetector(
+                          onTap: () {
+                            context.go('/user/${user.uuid}');
+                          },
+                          child: Text(
+                            user.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Color(0xFF4A4A4A)),
+                          ),
                         ),
                       ),
                     ],
@@ -353,7 +359,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                       backgroundColor: const Color.fromARGB(255, 111, 112, 113),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                       textStyle: const TextStyle(fontWeight: FontWeight.w400),
                     ),
                     onPressed: () async {
