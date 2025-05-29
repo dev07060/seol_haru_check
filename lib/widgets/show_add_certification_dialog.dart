@@ -48,6 +48,9 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
 
   @override
   void dispose() {
+    contentController.clear();
+    passwordController.clear();
+    selectedImageBytes = null; // 이미지 선택 초기화
     super.dispose();
   }
 
