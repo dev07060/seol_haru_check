@@ -82,7 +82,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Table(
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
