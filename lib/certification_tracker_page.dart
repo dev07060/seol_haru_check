@@ -227,7 +227,11 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                     bgColor = const Color(0xFFE3F2FD);
                     child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
                     onTap = () async {
-                      final result = await showAddCertificationDialog(user, context);
+                      final result = await showAddCertificationBottomSheet(
+                        user: user,
+                        context: context,
+                        onSuccess: loadData,
+                      );
                       if (result == true && mounted) {
                         await loadData();
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증이 등록되었습니다')));

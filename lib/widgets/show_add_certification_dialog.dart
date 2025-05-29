@@ -5,18 +5,155 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
+import 'package:seol_haru_check/shared/components/f_bottom_sheet.dart';
+import 'package:seol_haru_check/shared/components/f_solid_button.dart';
+import 'package:seol_haru_check/shared/components/f_tab.dart';
+import 'package:seol_haru_check/shared/components/f_text_field.dart';
+import 'package:seol_haru_check/shared/components/f_toast.dart';
 import 'package:seol_haru_check/widgets/full_screen_loading.dart';
 
-Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
-  String selectedType = '운동';
-  final contentController = TextEditingController();
-  final passwordController = TextEditingController();
-  Uint8List? selectedImageBytes;
-  bool isUploading = false;
+Future<bool?> showAddCertificationBottomSheet({
+  required User user,
+  required BuildContext context,
+  required Function onSuccess,
+}) {
+  return FBottomSheet.showWithHandler(
+    context,
+    contentBuilder: (isExpanded) => _AddCertificationContent(user: user),
+    bottomBuilder: (context) => _AddCertificationBottomButton(user: user, onSuccess: onSuccess),
+    initialHeight: 0.65,
+    enableDrag: false,
+  ).then((value) => value as bool?);
+}
 
+class _AddCertificationContent extends StatefulWidget {
+  final User user;
+
+  const _AddCertificationContent({required this.user});
+
+  @override
+  State<_AddCertificationContent> createState() => _AddCertificationContentState();
+}
+
+class _AddCertificationContentState extends State<_AddCertificationContent> {
+  static String selectedType = '운동';
+  static final contentController = TextEditingController();
+  static final passwordController = TextEditingController();
+  static Uint8List? selectedImageBytes;
+  static bool isUploading = false;
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  List<String> get types => ['운동', '식단'];
+  // 이미지 압축 함수
+  Future<Uint8List?> compressImage(Uint8List imageBytes) async {
+    try {
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minHeight: 800,
+        minWidth: 600,
+        quality: 70, // 0-100, 낮을수록 더 압축됨
+        format: CompressFormat.jpeg,
+      );
+
+      log('Original size: ${imageBytes.length} bytes');
+      log('Compressed size: ${compressedBytes.length} bytes');
+      log('Compression ratio: ${(compressedBytes.length / imageBytes.length * 100).toStringAsFixed(1)}%');
+
+      return compressedBytes;
+    } catch (e) {
+      log('Image compression failed: $e');
+      return imageBytes; // 압축 실패시 원본 반환
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                '인증 추가하기',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const Gap(8),
+              const Text(
+                '하루 최대 3개까지 업로드 가능',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const Gap(8),
+              FTab.capsuleTab(
+                currentIndex: types.indexOf(selectedType),
+                tabList: types,
+                size: CapsuleTapSize.small,
+                onChangedTap: (index) {
+                  setState(() => selectedType = types[index]);
+                },
+              ),
+              const Gap(8),
+              FTextField(controller: contentController, hintText: '인증 내용을 입력하세요', maxLines: 3),
+
+              const Gap(8),
+              FSolidButton.assistive(
+                onPressed: () async {
+                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    final bytes = await picked.readAsBytes();
+                    // 이미지 압축 적용
+                    final compressedBytes = await compressImage(bytes);
+                    setState(() {
+                      selectedImageBytes = compressedBytes;
+                    });
+                  }
+                },
+                size: FSolidButtonSize.small,
+                text: selectedImageBytes == null ? '이미지 선택' : '이미지 변경',
+              ),
+
+              if (selectedImageBytes != null) ...[
+                const Gap(8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(selectedImageBytes!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                ),
+              ],
+              const Gap(8),
+              FTextField(controller: passwordController, hintText: '비밀번호(4자리)', maxLength: 4, obscureText: true),
+              const Gap(8),
+            ],
+          ),
+        ),
+        if (isUploading) const Positioned.fill(child: FFullScreenLoading()),
+      ],
+    );
+  }
+}
+
+class _AddCertificationBottomButton extends StatefulWidget {
+  final User user;
+
+  const _AddCertificationBottomButton({required this.user, required this.onSuccess});
+  final Function onSuccess;
+
+  @override
+  State<_AddCertificationBottomButton> createState() => _AddCertificationBottomButtonState();
+}
+
+class _AddCertificationBottomButtonState extends State<_AddCertificationBottomButton> {
   // 이미지 압축 함수
   Future<Uint8List?> compressImage(Uint8List imageBytes) async {
     try {
@@ -56,222 +193,105 @@ Future<bool?> showAddCertificationDialog(User user, BuildContext context) {
     return query.docs.length;
   }
 
-  return showDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierColor: Colors.black54,
-    builder: (_) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Center(
-            child: Material(
-              color: Colors.transparent,
-              child: Stack(
-                children: [
-                  Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('인증 추가하기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                          const SizedBox(height: 8),
-                          const Text('하루 최대 3개까지 업로드 가능', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 16),
-                          ToggleButtons(
-                            isSelected: [selectedType == '운동', selectedType == '식단'],
-                            onPressed: (index) {
-                              setState(() => selectedType = index == 0 ? '운동' : '식단');
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            selectedColor: Colors.white,
-                            fillColor: const Color(0xFF004DF8),
-                            color: const Color(0xFF004DF8),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                            constraints: const BoxConstraints(minHeight: 44, minWidth: 120),
-                            children: const [Text('운동'), Text('식단')],
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: contentController,
-                            decoration: const InputDecoration(labelText: '내용', border: OutlineInputBorder()),
-                            maxLines: 2,
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: passwordController,
-                            decoration: const InputDecoration(labelText: '비밀번호', border: OutlineInputBorder()),
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-                                  if (picked != null) {
-                                    final bytes = await picked.readAsBytes();
-                                    // 이미지 압축 적용
-                                    final compressedBytes = await compressImage(bytes);
-                                    setState(() {
-                                      selectedImageBytes = compressedBytes;
-                                    });
-                                  }
-                                },
-                                icon: const Icon(Icons.image),
-                                label: Text(selectedImageBytes == null ? '이미지 선택' : '이미지 변경'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF004DF8),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                              if (selectedImageBytes != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.memory(selectedImageBytes!, height: 120, fit: BoxFit.cover),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.grey.shade700,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('취소'),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF004DF8),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                ),
-                                onPressed: () async {
-                                  if (isUploading) return;
-                                  if (contentController.text.trim().isEmpty ||
-                                      selectedImageBytes == null ||
-                                      passwordController.text.isEmpty) {
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(const SnackBar(content: Text('내용, 이미지, 비밀번호를 모두 입력해주세요')));
-                                    return;
-                                  }
+  Future<void> _handleSubmit() async {
+    if (_AddCertificationContentState.isUploading) return;
+    if (_AddCertificationContentState.contentController.text.trim().isEmpty ||
+        _AddCertificationContentState.selectedImageBytes == null ||
+        _AddCertificationContentState.passwordController.text.isEmpty) {
+      FToast(message: '모든 필드를 채워주세요.').show(context);
+      return;
+    }
 
-                                  setState(() => isUploading = true);
+    setState(() {
+      _AddCertificationContentState.isUploading = true;
+    });
 
-                                  try {
-                                    // 하루 업로드 제한 확인
-                                    final todayCount = await getTodayUploadCount(user.uuid);
-                                    if (todayCount >= 3) {
-                                      setState(() => isUploading = false);
-                                      await showDialog(
-                                        context: context,
-                                        builder:
-                                            (context) => AlertDialog(
-                                              title: const Text('업로드 제한'),
-                                              content: const Text('하루에 최대 3개까지만 업로드할 수 있습니다.'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text('확인'),
-                                                ),
-                                              ],
-                                            ),
-                                      );
-                                      return;
-                                    }
-
-                                    // Fetch user document by querying for uuid field (not by doc id)
-                                    final userQuery =
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .where('uuid', isEqualTo: user.uuid)
-                                            .limit(1)
-                                            .get();
-                                    if (userQuery.docs.isEmpty ||
-                                        userQuery.docs.first.data()['password'] != passwordController.text) {
-                                      log(
-                                        'password: ${userQuery.docs.isNotEmpty ? userQuery.docs.first.data() : null}',
-                                      );
-
-                                      setState(() => isUploading = false);
-                                      await showDialog(
-                                        context: context,
-                                        builder:
-                                            (context) => AlertDialog(
-                                              title: const Text('비밀번호 오류'),
-                                              content: const Text('비밀번호가 올바르지 않습니다.'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text('확인'),
-                                                ),
-                                              ],
-                                            ),
-                                      );
-                                      return;
-                                    }
-
-                                    final now = DateTime.now();
-                                    final formattedDate = DateFormat('yyyyMMdd').format(now);
-                                    final timestamp = DateFormat('HHmmss').format(now);
-                                    // 고유한 파일명 생성 (날짜 + 시간 + 카운트)
-                                    final filename = '${user.uuid}_${formattedDate}_${timestamp}_${todayCount + 1}.jpg';
-
-                                    final storageRef = FirebaseStorage.instance.ref().child('certifications/$filename');
-                                    final uploadTask = await storageRef.putData(selectedImageBytes!);
-                                    final gsPath = uploadTask.ref.fullPath;
-                                    final bucket = FirebaseStorage.instance.bucket;
-                                    final gsUrl = 'gs://$bucket/$gsPath';
-
-                                    await FirebaseFirestore.instance.collection('certifications').add({
-                                      'uuid': user.uuid,
-                                      'nickname': user.name,
-                                      'createdAt': now,
-                                      'type': selectedType,
-                                      'content': contentController.text.trim(),
-                                      'photoUrl': gsUrl,
-                                    });
-
-                                    setState(() => isUploading = false);
-                                    Navigator.pop(context, true);
-                                  } catch (e) {
-                                    setState(() => isUploading = false);
-                                    debugPrint('업로드 실패: $e');
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(SnackBar(content: Text('업로드 중 오류 발생: $e')));
-                                  }
-                                },
-                                child: const Text('제출'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (isUploading) Positioned.fill(child: const FFullScreenLoading()),
-                ],
+    try {
+      // 하루 업로드 제한 확인
+      final todayCount = await getTodayUploadCount(widget.user.uuid);
+      if (todayCount >= 3) {
+        setState(() {
+          _AddCertificationContentState.isUploading = false;
+        });
+        await showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('업로드 제한'),
+                content: const Text('하루에 최대 3개까지만 업로드할 수 있습니다.'),
+                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))],
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
+        );
+        return;
+      }
+
+      // Fetch user document by querying for uuid field (not by doc id)
+      final userQuery =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('uuid', isEqualTo: widget.user.uuid)
+              .limit(1)
+              .get();
+      if (userQuery.docs.isEmpty ||
+          userQuery.docs.first.data()['password'] != _AddCertificationContentState.passwordController.text) {
+        log('password: ${userQuery.docs.isNotEmpty ? userQuery.docs.first.data() : null}');
+
+        setState(() {
+          _AddCertificationContentState.isUploading = false;
+        });
+        await showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('비밀번호 오류'),
+                content: const Text('비밀번호가 올바르지 않습니다.'),
+                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))],
+              ),
+        );
+        return;
+      }
+
+      final now = DateTime.now();
+      final formattedDate = DateFormat('yyyyMMdd').format(now);
+      final timestamp = DateFormat('HHmmss').format(now);
+      // 고유한 파일명 생성 (날짜 + 시간 + 카운트)
+      final filename = '${widget.user.uuid}_${formattedDate}_${timestamp}_${todayCount + 1}.jpg';
+
+      final storageRef = FirebaseStorage.instance.ref().child('certifications/$filename');
+      final uploadTask = await storageRef.putData(_AddCertificationContentState.selectedImageBytes!);
+      final gsPath = uploadTask.ref.fullPath;
+      final bucket = FirebaseStorage.instance.bucket;
+      final gsUrl = 'gs://$bucket/$gsPath';
+
+      await FirebaseFirestore.instance.collection('certifications').add({
+        'uuid': widget.user.uuid,
+        'nickname': widget.user.name,
+        'createdAt': now,
+        'type': _AddCertificationContentState.selectedType,
+        'content': _AddCertificationContentState.contentController.text.trim(),
+        'photoUrl': gsUrl,
+      });
+
+      setState(() {
+        _AddCertificationContentState.isUploading = false;
+      });
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() {
+        _AddCertificationContentState.isUploading = false;
+      });
+      debugPrint('업로드 실패: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('업로드 중 오류 발생: $e')));
+    }
+
+    widget.onSuccess();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: FSolidButton.primary(onPressed: _handleSubmit, text: '제출', size: FSolidButtonSize.medium),
+    );
+  }
 }

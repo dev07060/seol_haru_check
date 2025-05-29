@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:seol_haru_check/shared/components/f_scaffold.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 
 class UserDetailPage extends StatefulWidget {
@@ -48,7 +49,7 @@ class _UserDetailPageState extends State<UserDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return FScaffold(
       appBar: AppBar(
         title: Text('$nickname의 히스토리'),
         leading: IconButton(

@@ -38,8 +38,12 @@ void showCertificationDialog(
                       tooltip: '추가 인증',
                       onPressed: () async {
                         Navigator.pop(context);
-                        final result = await showAddCertificationDialog(user, context);
-                        if (result == true && onUpdated != null) onUpdated();
+                        final result = await showAddCertificationBottomSheet(
+                          user: user,
+                          context: context,
+                          onSuccess: onUpdated!,
+                        );
+                        if (result == true) onUpdated();
                       },
                     ),
 
