@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as f_auth; // 이름 충돌 방지
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // riverpod import
 import 'package:gap/gap.dart';
@@ -6,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/providers/certification_provider.dart'; // provider import
+import 'package:seol_haru_check/shared/components/date_picker/f_date_picker.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
 import 'package:seol_haru_check/widgets/show_certification_dialog.dart';
 import 'package:uuid/uuid.dart';
@@ -21,15 +25,17 @@ class CertificationTrackerPage extends ConsumerStatefulWidget {
 class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerPage> {
   final List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
   DateTime today = DateTime.now();
+  late DateTime _focusedDate;
 
   List<DateTime> get weekDates {
-    final start = today.subtract(Duration(days: today.weekday - 1));
-    return List.generate(days.length, (i) => start.add(Duration(days: i)));
+    final start = _focusedDate.subtract(Duration(days: _focusedDate.weekday - 1));
+    return List.generate(7, (i) => start.add(Duration(days: i)));
   }
 
   @override
   void initState() {
     super.initState();
+    _focusedDate = DateTime.now(); // 초기값은 오늘
     Future.microtask(() => ref.read(certificationProvider.notifier).initialLoad());
   }
 
@@ -56,6 +62,75 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
       );
     }
     return Scaffold(backgroundColor: Colors.grey[300], body: SafeArea(child: _buildBody(users)));
+  }
+
+  Widget _buildSignUpButton() {
+    return ElevatedButton.icon(
+      icon: const Icon(Icons.person_add),
+      label: const Text(AppStrings.join),
+      onPressed: () async {
+        final nicknameController = TextEditingController();
+        final passwordController = TextEditingController();
+
+        await showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text(AppStrings.join),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nicknameController,
+                      decoration: const InputDecoration(labelText: AppStrings.nickname),
+                    ),
+                    TextField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(labelText: AppStrings.password4digits),
+                      obscureText: true,
+                      maxLength: 6,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text(AppStrings.cancel)),
+                  TextButton(
+                    child: const Text(AppStrings.complete),
+                    onPressed: () async {
+                      final nickname = nicknameController.text.trim();
+                      final password = passwordController.text.trim();
+                      if (nickname.isEmpty || password.length < 6) return;
+
+                      try {
+                        // [수정] Firebase Auth로 회원가입
+                        // 이메일은 '닉네임@seolharu.check' 형식으로 생성
+                        final userCredential = await f_auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
+                          email: '$nickname@seolharu.check',
+                          password: password,
+                        );
+
+                        // Firestore에 사용자 정보 저장
+                        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+                          'nickname': nickname,
+                          'uuid': userCredential.user!.uid, // Auth의 uid를 uuid로 사용
+                          'createdAt': DateTime.now(),
+                        });
+
+                        Navigator.of(ctx).pop();
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(const SnackBar(content: Text(AppStrings.joinCompleteMessage)));
+                        await ref.read(certificationProvider.notifier).loadData();
+                      } on f_auth.FirebaseAuthException catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('회원가입 실패: ${e.message}')));
+                      }
+                    },
+                  ),
+                ],
+              ),
+        );
+      },
+    );
   }
 
   Widget _buildTableContent(List<User> users) {
@@ -143,6 +218,7 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                       allCertifications.where((c) {
                         return c.uuid == user.uuid && DateFormat('yyyyMMdd').format(c.createdAt) == selectedDateStr;
                       }).toList();
+                  log('2 ${allCertifications}');
 
                   // 상태 결정을 위한 로직만 남깁니다.
                   final hasCertification = certsForCell.isNotEmpty;
@@ -232,7 +308,7 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                       decoration: const InputDecoration(labelText: AppStrings.password4digits),
                       obscureText: true,
                       keyboardType: TextInputType.number,
-                      maxLength: 4,
+                      maxLength: 6,
                     ),
                   ],
                 ),
@@ -242,7 +318,7 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                     onPressed: () async {
                       final nickname = nicknameController.text.trim();
                       final password = passwordController.text.trim();
-                      if (nickname.isNotEmpty && password.length == 4) {
+                      if (nickname.isNotEmpty && password.length == 6) {
                         final uuid = const Uuid().v4();
                         await FirebaseFirestore.instance.collection('users').add({
                           'nickname': nickname,
@@ -279,50 +355,23 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
       child: Center(
         child: Column(
           children: [
-            const Text(
-              AppStrings.appTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
-            ),
-            const Gap(8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    DateFormat('yyyy년 M월 d일 (E)', 'ko').format(today),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const Gap(8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 111, 112, 113),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w400),
-                    ),
-                    onPressed: () async {
-                      await ref.read(certificationProvider.notifier).loadData();
-                    },
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text(AppStrings.refresh),
-                  ),
-                ],
-              ),
+            const Text(AppStrings.appTitle),
+            const Gap(16),
+            FDatePicker(
+              focusedDay: _focusedDate,
+              onChangedDay: (selectedDay) {
+                setState(() {
+                  _focusedDate = selectedDay;
+                });
+              },
             ),
             const Gap(8),
             _buildTableContent(users),
             const Gap(12),
-            const Text(
-              AppStrings.guideText,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Text(AppStrings.guideText),
             const Gap(12),
-            _buildJoinButton(),
+            _buildSignUpButton(), // [수정] 이름 변경
+            ElevatedButton(onPressed: () => f_auth.FirebaseAuth.instance.signOut(), child: Text("로그아웃")),
           ],
         ),
       ),

@@ -125,7 +125,7 @@ void showCertificationDialog(
                                                                 decoration: const InputDecoration(labelText: '비밀번호'),
                                                                 obscureText: true,
                                                                 keyboardType: TextInputType.number,
-                                                                maxLength: 4,
+                                                                maxLength: 6,
                                                               ),
                                                               actions: [
                                                                 TextButton(

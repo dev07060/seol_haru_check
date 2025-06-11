@@ -28,6 +28,8 @@ dependencies:
   fluttertoast: ^8.2.12
   flutter_bounceable: ^1.2.0
   flutter_riverpod: ^2.6.1
+  table_calendar: ^3.2.0
+  firebase_auth: ^5.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

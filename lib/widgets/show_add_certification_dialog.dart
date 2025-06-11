@@ -135,7 +135,7 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
                 ),
               ],
               const Gap(8),
-              FTextField(controller: passwordController, hintText: '비밀번호(4자리)', maxLength: 4, obscureText: true),
+              FTextField(controller: passwordController, hintText: '비밀번호(6자리)', maxLength: 6, obscureText: true),
               const Gap(8),
             ],
           ),

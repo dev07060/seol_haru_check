@@ -34,7 +34,7 @@ class CertificationNotifier extends StateNotifier<CertificationState> with Table
   Future<void> _fetchAndSetState() async {
     final fetchedUsers = await fetchUsersFromFirestore();
 
-    final certSnapshot = await FirebaseFirestore.instance.collection('certifications').get();
+    final certSnapshot = await FirebaseFirestore.instance.collection('certichevron_down_thickfications').get();
     final fetchedCerts = certSnapshot.docs.map((doc) => Certification.fromMap(doc.id, doc.data())).toList();
 
     state = state.copyWith(users: fetchedUsers, certifications: fetchedCerts, isLoading: false);
