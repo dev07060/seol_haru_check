@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
 import 'package:seol_haru_check/shared/components/f_bottom_sheet.dart';
+import 'package:seol_haru_check/shared/components/f_dialog.dart';
 import 'package:seol_haru_check/shared/components/f_solid_button.dart';
 import 'package:seol_haru_check/shared/components/f_tab.dart';
 import 'package:seol_haru_check/shared/components/f_text_field.dart';
@@ -219,11 +220,8 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         await showDialog(
           context: context,
           builder:
-              (context) => AlertDialog(
-                title: const Text('업로드 제한'),
-                content: const Text('하루에 최대 3개까지만 업로드할 수 있습니다.'),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))],
-              ),
+              (context) =>
+                  FDialog.oneButton(title: '업로드 제한', confirmText: '확인', onConfirm: () => Navigator.pop(context)),
         );
         return;
       }

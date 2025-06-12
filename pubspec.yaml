@@ -39,20 +39,20 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/svg/
-    - assets/
+    # - assets/svg/
+    # - assets/
     - assets/fonts/
     - assets/fonts/pretendard/
-    - assets/icons/
-    - assets/icons/player/
-    - assets/icons/chevrons/
-    - assets/icons/emoji/
-    - assets/icons/empty/
-    - assets/icons/normal/
-    - assets/icons/sns/
-    - assets/icons/tab_bar/
-    - assets/icons/palette/
-    - assets/images/
+    # - assets/icons/
+    # - assets/icons/player/
+    # - assets/icons/chevrons/
+    # - assets/icons/emoji/
+    # - assets/icons/empty/
+    # - assets/icons/normal/
+    # - assets/icons/sns/
+    # - assets/icons/tab_bar/
+    # - assets/icons/palette/
+    # - assets/images/
 
   fonts:
     - family: Pretendard
