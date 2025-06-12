@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: '${_emailController.text.trim()}@seolharu.check',
-        password: _passwordController.text.trim(),
+        password: '${_passwordController.text.trim()}00',
       );
       // 로그인이 성공하면 라우터가 알아서 홈으로 보냅니다.
     } on FirebaseAuthException catch (e) {
@@ -56,7 +56,12 @@ class _LoginPageState extends State<LoginPage> {
                 textInputType: TextInputType.emailAddress,
               ),
               const Gap(16),
-              FTextField(controller: _passwordController, hintText: AppStrings.password4digits, obscureText: true),
+              FTextField(
+                controller: _passwordController,
+                hintText: AppStrings.password4digits,
+                obscureText: true,
+                maxLength: 4,
+              ),
               const Gap(24),
               FSolidButton.primary(text: '로그인', onPressed: _signIn),
             ],

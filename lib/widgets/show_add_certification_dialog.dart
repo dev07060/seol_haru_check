@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth; // Alias FirebaseAuth
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -131,12 +132,12 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
                 const Gap(8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(selectedImageBytes!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                  child: Image.memory(selectedImageBytes!, height: 400, width: double.infinity, fit: BoxFit.cover),
                 ),
               ],
               const Gap(8),
-              FTextField(controller: passwordController, hintText: '비밀번호(6자리)', maxLength: 6, obscureText: true),
-              const Gap(8),
+              // FTextField(controller: passwordController, hintText: '비밀번호(6자리)', maxLength: 6, obscureText: true),
+              // const Gap(8),
             ],
           ),
         ),
@@ -199,8 +200,7 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
   Future<void> _handleSubmit() async {
     if (_AddCertificationContentState.isUploading) return;
     if (_AddCertificationContentState.contentController.text.trim().isEmpty ||
-        _AddCertificationContentState.selectedImageBytes == null ||
-        _AddCertificationContentState.passwordController.text.isEmpty) {
+        _AddCertificationContentState.selectedImageBytes == null) {
       FToast(message: '모든 필드를 채워주세요.').show(context);
       return;
     }
@@ -228,29 +228,13 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         return;
       }
 
-      // Fetch user document by querying for uuid field (not by doc id)
-      final userQuery =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .where('uuid', isEqualTo: widget.user.uuid)
-              .limit(1)
-              .get();
-      if (userQuery.docs.isEmpty ||
-          userQuery.docs.first.data()['password'] != _AddCertificationContentState.passwordController.text) {
-        log('password: ${userQuery.docs.isNotEmpty ? userQuery.docs.first.data() : null}');
-
+      // 현재 로그인한 사용자의 UUID와 위젯의 user.uuid가 일치하는지 확인
+      final currentFbUser = fb_auth.FirebaseAuth.instance.currentUser;
+      if (currentFbUser == null || currentFbUser.uid != widget.user.uuid) {
         setState(() {
           _AddCertificationContentState.isUploading = false;
         });
-        await showDialog(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: const Text('비밀번호 오류'),
-                content: const Text('비밀번호가 올바르지 않습니다.'),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))],
-              ),
-        );
+        FToast(message: '인증 오류: 사용자 정보가 일치하지 않습니다.').show(context);
         return;
       }
 

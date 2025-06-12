@@ -30,6 +30,7 @@ class FDatePicker extends StatefulWidget {
     this.events = const {},
     required this.onChangedDay,
     this.onFormatChanged,
+    this.targetUuid, // Add targetUuid parameter
     this.useMultiLanguage = true,
   });
 
@@ -42,6 +43,7 @@ class FDatePicker extends StatefulWidget {
   final FCalendarFormat calendarFormat;
   final Function(DateTime date) onChangedDay;
   final Function(FCalendarFormat fCalendarFormat)? onFormatChanged;
+  final String? targetUuid; // Add targetUuid field
   final bool useMultiLanguage;
 
   @override
@@ -152,6 +154,7 @@ class _FDatePickerState extends State<FDatePicker> {
                 firstDay: _firstDay,
                 lastDay: _lastDay,
                 onSelectedMonth: _onSelectedMonth,
+                targetUuid: widget.targetUuid, // Pass targetUuid to FMonthPicker
                 onCanceled: _onTapMonth,
                 useMultiLanguage: widget.useMultiLanguage,
               )

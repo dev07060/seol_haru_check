@@ -1,141 +1,83 @@
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as f_auth; // 이름 충돌 방지
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // riverpod import
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:seol_haru_check/constants/app_strings.dart';
-import 'package:seol_haru_check/providers/certification_provider.dart'; // provider import
-import 'package:seol_haru_check/shared/components/date_picker/f_date_picker.dart';
-import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
-import 'package:seol_haru_check/widgets/show_certification_dialog.dart';
+import 'package:seol_haru_check/table_data_from_firestore.dart';
 import 'package:uuid/uuid.dart';
 
-// StatelessWidget을 ConsumerWidget으로 변경
-class CertificationTrackerPage extends ConsumerStatefulWidget {
+class CertificationTrackerPage extends StatefulWidget {
   const CertificationTrackerPage({super.key});
 
   @override
-  ConsumerState<CertificationTrackerPage> createState() => _CertificationTrackerPageState();
+  State<CertificationTrackerPage> createState() => _CertificationTrackerPageState();
 }
 
-class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerPage> {
+class _CertificationTrackerPageState extends State<CertificationTrackerPage> with TableDataFromFirestore {
   final List<String> days = ['월', '화', '수', '목', '금', '토', '일'];
+
+  List<User> users = [];
+  Map<String, bool> certifications = {};
+  bool isLoading = true;
+
   DateTime today = DateTime.now();
-  late DateTime _focusedDate;
 
   List<DateTime> get weekDates {
-    final start = _focusedDate.subtract(Duration(days: _focusedDate.weekday - 1));
-    return List.generate(7, (i) => start.add(Duration(days: i)));
+    final start = today.subtract(Duration(days: today.weekday - 1)); // Start from Monday
+    return List.generate(days.length, (i) => start.add(Duration(days: i)));
   }
 
   @override
   void initState() {
     super.initState();
-    _focusedDate = DateTime.now(); // 초기값은 오늘
-    Future.microtask(() => ref.read(certificationProvider.notifier).initialLoad());
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    try {
+      final fetchedUsers = await fetchUsersFromFirestore();
+      final fetchedCerts = await fetchAllCertifications();
+      setState(() {
+        users = fetchedUsers;
+        certifications = fetchedCerts;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Firestore fetch error: $e');
+      setState(() {
+        users = [];
+        certifications = {};
+        isLoading = false;
+      });
+    }
+  }
+
+  bool? getStatus(String uuid, DateTime date) {
+    final key = '${uuid}_${DateFormat('yyyyMMdd').format(date)}';
+    final status = certifications[key];
+    log('Status for $key = $status');
+    return status;
   }
 
   @override
   Widget build(BuildContext context) {
-    // ref.watch를 통해 상태를 구독. 상태가 변경되면 자동으로 리빌드됨.
-    final state = ref.watch(certificationProvider);
-    final users = state.users;
-
-    if (state.isLoading && users.isEmpty) {
+    if (isLoading && users.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
     }
-    if (users.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.grey[300],
-        body: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [const Text(AppStrings.noParticipants), const Gap(12), _buildJoinButton()],
-            ),
-          ),
-        ),
-      );
-    }
-    return Scaffold(backgroundColor: Colors.grey[300], body: SafeArea(child: _buildBody(users)));
-  }
 
-  Widget _buildSignUpButton() {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.person_add),
-      label: const Text(AppStrings.join),
-      onPressed: () async {
-        final nicknameController = TextEditingController();
-        final passwordController = TextEditingController();
-
-        await showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: const Text(AppStrings.join),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nicknameController,
-                      decoration: const InputDecoration(labelText: AppStrings.nickname),
-                    ),
-                    TextField(
-                      controller: passwordController,
-                      decoration: const InputDecoration(labelText: AppStrings.password4digits),
-                      obscureText: true,
-                      maxLength: 6,
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text(AppStrings.cancel)),
-                  TextButton(
-                    child: const Text(AppStrings.complete),
-                    onPressed: () async {
-                      final nickname = nicknameController.text.trim();
-                      final password = passwordController.text.trim();
-                      if (nickname.isEmpty || password.length < 6) return;
-
-                      try {
-                        // [수정] Firebase Auth로 회원가입
-                        // 이메일은 '닉네임@seolharu.check' 형식으로 생성
-                        final userCredential = await f_auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
-                          email: '$nickname@seolharu.check',
-                          password: password,
-                        );
-
-                        // Firestore에 사용자 정보 저장
-                        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-                          'nickname': nickname,
-                          'uuid': userCredential.user!.uid, // Auth의 uid를 uuid로 사용
-                          'createdAt': DateTime.now(),
-                        });
-
-                        Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(const SnackBar(content: Text(AppStrings.joinCompleteMessage)));
-                        await ref.read(certificationProvider.notifier).loadData();
-                      } on f_auth.FirebaseAuthException catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('회원가입 실패: ${e.message}')));
-                      }
-                    },
-                  ),
-                ],
-              ),
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('운동 식단 인증'),
+        leading: IconButton(onPressed: () => context.go('/'), icon: Icon(Icons.arrow_back)),
+      ),
+      body: users.isEmpty ? Center(child: Text('참여자가 아직 없습니다')) : _buildBody(),
     );
   }
 
-  Widget _buildTableContent(List<User> users) {
-    final allCertifications = ref.watch(certificationProvider).certifications;
-
+  /// Returns the table content only, for use in _buildBody.
+  Widget _buildTableContent() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.only(bottom: 8),
@@ -148,7 +90,6 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         columnWidths: const {0: FixedColumnWidth(80)},
         children: [
-          // Table Header (기존과 동일)
           TableRow(
             decoration: BoxDecoration(
               color: const Color(0xFFF6F7F9),
@@ -168,14 +109,13 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   alignment: Alignment.center,
                   child: Text(
-                    days[(d.weekday - 1) % 7],
+                    days[(d.weekday - 1) % 7], // Monday=0, ..., Sunday=6
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF4A4A4A)),
                   ),
                 ),
               ),
             ],
           ),
-          // Table Body (데이터 로딩 로직 변경)
           ...users.asMap().entries.map((entry) {
             final index = entry.key;
             final user = entry.value;
@@ -186,7 +126,6 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                     index < users.length - 1 ? Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)) : null,
               ),
               children: [
-                // 사용자 이름 표시 (기존과 동일)
                 Container(
                   width: 40,
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -199,7 +138,8 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            context.go('/user/${user.uuid}');
+                            // Change navigation to the new feed page route
+                            context.go('/user/${user.uuid}/feed');
                           },
                           child: Text(
                             user.name,
@@ -211,66 +151,118 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                     ],
                   ),
                 ),
-                // 날짜별 인증 상태 표시 (콜백 함수 변경)
                 ...weekDates.map((date) {
-                  final selectedDateStr = DateFormat('yyyyMMdd').format(date);
-                  final certsForCell =
-                      allCertifications.where((c) {
-                        return c.uuid == user.uuid && DateFormat('yyyyMMdd').format(c.createdAt) == selectedDateStr;
-                      }).toList();
-                  log('2 ${allCertifications}');
+                  final status = getStatus(user.uuid, date);
+                  final isToday = DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
+                  final isPast = date.isBefore(today);
 
-                  // 상태 결정을 위한 로직만 남깁니다.
-                  final hasCertification = certsForCell.isNotEmpty;
-                  final isToday = selectedDateStr == DateFormat('yyyyMMdd').format(today);
+                  Color bgColor;
+                  Widget child;
+                  VoidCallback? onTap;
 
-                  VoidCallback? onTapCallback;
-                  Widget childWidget;
-                  Color backgroundColor;
+                  if (status == true) {
+                    log('Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}');
+                    bgColor = const Color(0xFFDFF6E4);
+                    onTap = () async {
+                      // final query =
+                      //     await FirebaseFirestore.instance
+                      //         .collection('certifications')
+                      //         .where('uuid', isEqualTo: user.uuid)
+                      //         .get();
 
-                  if (hasCertification) {
-                    backgroundColor = const Color(0xFFDFF6E4);
-                    childWidget = Text(
-                      certsForCell.length == 1
-                          ? '😀'
-                          : certsForCell.length == 2
-                          ? '😎'
-                          : '🔥',
-                      style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 14),
-                    );
-                    onTapCallback = () {
-                      final certsAsMaps = certsForCell.map((c) => c.toMap()..['docId'] = c.docId).toList();
-                      showCertificationDialog(
-                        user,
-                        certsAsMaps,
-                        context,
-                        onDeleted: () => ref.read(certificationProvider.notifier).loadData(),
-                        onUpdated: () => ref.read(certificationProvider.notifier).loadData(),
-                      );
+                      // final selectedDate = DateFormat('yyyyMMdd').format(date);
+
+                      // final certDocs =
+                      //     query.docs.where((doc) {
+                      //       final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                      //       return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
+                      //     }).toList();
+
+                      // final certs = certDocs.map((doc) => {'docId': doc.id, ...doc.data()}).toList();
+
+                      // showCertificationDialog(
+                      //   user,
+                      //   certs,
+                      //   context,
+                      //   onDeleted: () async {
+                      //     await loadData();
+                      //   },
+                      //   onUpdated: () async {
+                      //     await loadData();
+                      //   },
+                      // );
                     };
-                  } else if (isToday) {
-                    backgroundColor = const Color(0xFFE3F2FD);
-                    childWidget = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
-                    onTapCallback =
-                        () => showAddCertificationBottomSheet(
-                          user: user,
-                          context: context,
-                          onSuccess: () => ref.read(certificationProvider.notifier).loadData(),
+                    child = FutureBuilder<QuerySnapshot>(
+                      future:
+                          FirebaseFirestore.instance
+                              .collection('certifications')
+                              .where('uuid', isEqualTo: user.uuid)
+                              .get(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SizedBox(width: 16, height: 16);
+                        }
+                        if (!snapshot.hasData) {
+                          return const SizedBox(width: 16, height: 16);
+                        }
+                        final selectedDate = DateFormat('yyyyMMdd').format(date);
+                        final certDocs =
+                            snapshot.data!.docs.where((doc) {
+                              final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                              return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
+                            }).toList();
+                        return Text(
+                          certDocs.length == 1
+                              ? '😀'
+                              : certDocs.length == 2
+                              ? '😎'
+                              : certDocs.length >= 3
+                              ? '🔥'
+                              : '',
+                          style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 14),
                         );
-                  } else {
-                    backgroundColor = const Color(0xFFF7F7F7);
-                    childWidget = const Text(
+                      },
+                    );
+                  } else if (status == false) {
+                    bgColor = const Color(0xFFFDECEA);
+                    child = const Icon(Icons.close, color: Color(0xFFC62828), size: 16);
+                  } else if (isToday) {
+                    bgColor = const Color(0xFFE3F2FD);
+                    child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
+                    onTap = () async {
+                      // final result = await showAddCertificationBottomSheet(
+                      //   user: user,
+                      //   context: context,
+                      //   onSuccess: loadData,
+                      // );
+                      // if (result == true && mounted) {
+                      //   await loadData();
+                      //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증이 등록되었습니다'))
+                      //   );
+                      // }
+                    };
+                  } else if (isPast) {
+                    bgColor = const Color(0xFFF7F7F7);
+                    child = const Text(
                       '-',
                       style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
                     );
-                    onTapCallback = null;
+                  } else {
+                    bgColor = const Color(0xFFF7F7F7);
+                    child = const Text(
+                      '-',
+                      style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
+                    );
                   }
 
-                  return _CertificationCell(
-                    viewModel: _CertificationCellViewModel(
-                      backgroundColor: backgroundColor,
-                      child: childWidget,
-                      onTap: onTapCallback,
+                  return GestureDetector(
+                    onTap: onTap,
+                    child: Container(
+                      height: 32,
+                      width: 32,
+                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                      decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                      child: Center(child: child),
                     ),
                   );
                 }),
@@ -282,11 +274,11 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
     );
   }
 
+  /// Returns the join button widget, for use in _buildBody.
   Widget _buildJoinButton() {
-    // `loadData` 호출을 provider의 메서드 호출로 변경합니다.
     return ElevatedButton.icon(
       icon: const Icon(Icons.person_add),
-      label: const Text(AppStrings.join),
+      label: const Text('참가하기'),
       onPressed: () async {
         final nicknameController = TextEditingController();
         final passwordController = TextEditingController();
@@ -295,30 +287,27 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
           context: context,
           builder:
               (ctx) => AlertDialog(
-                title: const Text(AppStrings.join),
+                title: const Text('참가하기'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      controller: nicknameController,
-                      decoration: const InputDecoration(labelText: AppStrings.nickname),
-                    ),
+                    TextField(controller: nicknameController, decoration: const InputDecoration(labelText: '닉네임')),
                     TextField(
                       controller: passwordController,
-                      decoration: const InputDecoration(labelText: AppStrings.password4digits),
+                      decoration: const InputDecoration(labelText: '비밀번호 (4자리)'),
                       obscureText: true,
                       keyboardType: TextInputType.number,
-                      maxLength: 6,
+                      maxLength: 4,
                     ),
                   ],
                 ),
                 actions: [
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text(AppStrings.cancel)),
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('취소')),
                   TextButton(
                     onPressed: () async {
                       final nickname = nicknameController.text.trim();
                       final password = passwordController.text.trim();
-                      if (nickname.isNotEmpty && password.length == 6) {
+                      if (nickname.isNotEmpty && password.length == 4) {
                         final uuid = const Uuid().v4();
                         await FirebaseFirestore.instance.collection('users').add({
                           'nickname': nickname,
@@ -332,52 +321,77 @@ class _CertificationTrackerPageState extends ConsumerState<CertificationTrackerP
                         }
                       }
                     },
-                    child: const Text(AppStrings.complete),
+                    child: const Text('완료'),
                   ),
                 ],
               ),
         );
 
         if (result == true) {
-          await ref.read(certificationProvider.notifier).loadData();
+          await loadData();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.joinCompleteMessage)));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('참가가 완료되었습니다')));
           }
         }
       },
     );
   }
 
-  Widget _buildBody(List<User> users) {
+  /// Returns the main body widget, with web/mobile differences for refresh.
+  Widget _buildBody() {
     final content = SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Center(
         child: Column(
           children: [
-            const Text(AppStrings.appTitle),
-            const Gap(16),
-            FDatePicker(
-              focusedDay: _focusedDate,
-              onChangedDay: (selectedDay) {
-                setState(() {
-                  _focusedDate = selectedDay;
-                });
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('yyyy년 M월 d일 (E)', 'ko').format(today),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Gap(8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 111, 112, 113),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w400),
+                    ),
+                    onPressed: () async {
+                      setState(() {
+                        isLoading = true;
+                      });
+                      await loadData();
+                    },
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('새로고침'),
+                  ),
+                ],
+              ),
             ),
             const Gap(8),
-            _buildTableContent(users),
+            _buildTableContent(),
             const Gap(12),
-            const Text(AppStrings.guideText),
-            const Gap(12),
-            _buildSignUpButton(), // [수정] 이름 변경
-            ElevatedButton(onPressed: () => f_auth.FirebaseAuth.instance.signOut(), child: Text("로그아웃")),
+            const Text(
+              '다른 참여자의 닉네임을 클릭하여 피드를 확인할 수 있어요',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            // const Gap(12),
+            // _buildJoinButton(),
           ],
         ),
       ),
     );
 
-    return RefreshIndicator(onRefresh: () => ref.read(certificationProvider.notifier).loadData(), child: content);
+    return RefreshIndicator(onRefresh: loadData, child: content);
   }
 }
 
@@ -386,33 +400,4 @@ class User {
   final String uuid;
 
   User({required this.name, required this.uuid});
-}
-
-// _CertificationTrackerPageState 클래스 외부에 추가
-class _CertificationCellViewModel {
-  final Color backgroundColor;
-  final Widget child;
-  final VoidCallback? onTap;
-
-  _CertificationCellViewModel({required this.backgroundColor, required this.child, this.onTap});
-}
-
-class _CertificationCell extends StatelessWidget {
-  final _CertificationCellViewModel viewModel;
-
-  const _CertificationCell({required this.viewModel});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: viewModel.onTap,
-      child: Container(
-        height: 32,
-        width: 32,
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-        decoration: BoxDecoration(color: viewModel.backgroundColor, shape: BoxShape.circle),
-        child: Center(child: viewModel.child),
-      ),
-    );
-  }
 }
