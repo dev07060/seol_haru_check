@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:seol_haru_check/router.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,7 +26,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
   DateTime today = DateTime.now();
 
   List<DateTime> get weekDates {
-    final start = today.subtract(Duration(days: today.weekday - 1)); // Start from Monday
+    final start = today.subtract(Duration(days: today.weekday - 1));
     return List.generate(days.length, (i) => start.add(Duration(days: i)));
   }
 
@@ -70,13 +71,12 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
     return Scaffold(
       appBar: AppBar(
         title: Text('운동 식단 인증'),
-        leading: IconButton(onPressed: () => context.go('/'), icon: Icon(Icons.arrow_back)),
+        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back)),
       ),
       body: users.isEmpty ? Center(child: Text('참여자가 아직 없습니다')) : _buildBody(),
     );
   }
 
-  /// Returns the table content only, for use in _buildBody.
   Widget _buildTableContent() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -138,8 +138,13 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Change navigation to the new feed page route
-                            context.go('/user/${user.uuid}/feed');
+                            // --- FIX: Use context.push with namedLocation ---
+                            context.push(
+                              AppRouter.router.namedLocation(
+                                AppRoutePath.otherUserFeed.name,
+                                pathParameters: {'uuid': user.uuid},
+                              ),
+                            );
                           },
                           child: Text(
                             user.name,
@@ -164,33 +169,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                     log('Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}');
                     bgColor = const Color(0xFFDFF6E4);
                     onTap = () async {
-                      // final query =
-                      //     await FirebaseFirestore.instance
-                      //         .collection('certifications')
-                      //         .where('uuid', isEqualTo: user.uuid)
-                      //         .get();
-
-                      // final selectedDate = DateFormat('yyyyMMdd').format(date);
-
-                      // final certDocs =
-                      //     query.docs.where((doc) {
-                      //       final createdAt = (doc['createdAt'] as Timestamp).toDate();
-                      //       return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
-                      //     }).toList();
-
-                      // final certs = certDocs.map((doc) => {'docId': doc.id, ...doc.data()}).toList();
-
-                      // showCertificationDialog(
-                      //   user,
-                      //   certs,
-                      //   context,
-                      //   onDeleted: () async {
-                      //     await loadData();
-                      //   },
-                      //   onUpdated: () async {
-                      //     await loadData();
-                      //   },
-                      // );
+                      // On-tap logic for certified days
                     };
                     child = FutureBuilder<QuerySnapshot>(
                       future:
@@ -230,16 +209,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                     bgColor = const Color(0xFFE3F2FD);
                     child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
                     onTap = () async {
-                      // final result = await showAddCertificationBottomSheet(
-                      //   user: user,
-                      //   context: context,
-                      //   onSuccess: loadData,
-                      // );
-                      // if (result == true && mounted) {
-                      //   await loadData();
-                      //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증이 등록되었습니다'))
-                      //   );
-                      // }
+                      // On-tap logic for today
                     };
                   } else if (isPast) {
                     bgColor = const Color(0xFFF7F7F7);

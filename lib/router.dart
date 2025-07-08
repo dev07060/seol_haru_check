@@ -1,15 +1,33 @@
-import 'dart:async'; // [추가]
+import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart'; // [추가]
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart' hide User;
 import 'package:seol_haru_check/pages/login_page.dart';
 import 'package:seol_haru_check/pages/my_feed_page.dart';
-import 'package:seol_haru_check/pages/other_user_feed_page.dart'; // Import the new page
-import 'package:seol_haru_check/pages/user_detail_page.dart';
+import 'package:seol_haru_check/pages/other_user_feed_page.dart';
 
-// [추가] FirebaseAuth의 인증 상태 변경(Stream)을 GoRouter에 알려주는(ChangeNotifier) 클래스
+enum AppRoutePath {
+  myFeed,
+  login,
+  otherUserFeed,
+  adminTracker;
+
+  String get relativePath {
+    switch (this) {
+      case myFeed:
+        return '/';
+      case login:
+        return '/login';
+      case otherUserFeed:
+        return 'user/:uuid/feed';
+      case adminTracker:
+        return '/admin/tracker';
+    }
+  }
+}
+
 class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<User?> _subscription;
 
@@ -25,39 +43,50 @@ class GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-final GoRouter router = GoRouter(
-  routes: [
-    // 기본 경로를 MyFeedPage로 변경
-    GoRoute(path: '/', builder: (context, state) => const MyFeedPage()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(
-      path: '/user/:uuid',
-      builder: (context, state) {
-        final uuid = state.pathParameters['uuid']!;
-        return UserDetailPage(uuid: uuid);
-      },
-    ),
-    GoRoute(
-      // New route for other users' feeds
-      path: '/user/:uuid/feed',
-      builder: (context, state) => OtherUserFeedPage(uuid: state.pathParameters['uuid']!),
-    ),
-    // 기존 테이블 페이지를 관리자용으로 남겨둘 경우
-    GoRoute(path: '/admin/tracker', builder: (context, state) => const CertificationTrackerPage()),
-  ],
-  // [수정] refreshListenable을 사용하여 인증 상태 변경을 실시간으로 감지
-  refreshListenable: GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
-  redirect: (context, state) {
-    final loggedIn = FirebaseAuth.instance.currentUser != null;
-    final loggingIn = state.matchedLocation == '/login';
+class AppRouter {
+  static final GoRouter router = GoRouter(
+    initialLocation: AppRoutePath.myFeed.relativePath,
+    routes: [
+      GoRoute(
+        path: AppRoutePath.myFeed.relativePath,
+        name: AppRoutePath.myFeed.name,
+        builder: (context, state) => const MyFeedPage(),
+        routes: [
+          GoRoute(
+            path: AppRoutePath.otherUserFeed.relativePath,
+            name: AppRoutePath.otherUserFeed.name,
+            builder: (context, state) {
+              final uuid = state.pathParameters['uuid']!;
+              return OtherUserFeedPage(uuid: uuid);
+            },
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutePath.login.relativePath,
+        name: AppRoutePath.login.name,
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutePath.adminTracker.relativePath,
+        name: AppRoutePath.adminTracker.name,
+        builder: (context, state) => const CertificationTrackerPage(),
+      ),
+    ],
+    refreshListenable: GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
+    redirect: (context, state) {
+      final loggedIn = FirebaseAuth.instance.currentUser != null;
+      final loggingIn = state.matchedLocation == AppRoutePath.login.relativePath;
 
-    if (!loggedIn && !loggingIn) {
-      return '/login';
-    }
-    if (loggedIn && loggingIn) {
-      return '/';
-    }
+      if (!loggedIn && !loggingIn) {
+        return AppRoutePath.login.relativePath;
+      }
+      if (loggedIn && loggingIn) {
+        return AppRoutePath.myFeed.relativePath;
+      }
 
-    return null;
-  },
-);
+      // No redirection needed.
+      return null;
+    },
+  );
+}
