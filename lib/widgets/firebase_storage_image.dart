@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 
 class FirebaseStorageImage extends StatelessWidget {
   final String imagePath;
+  final double? width;
+  final double? height;
+  final BoxFit? fit;
+  final double? aspectRatio;
 
-  const FirebaseStorageImage({super.key, required this.imagePath});
+  const FirebaseStorageImage({super.key, required this.imagePath, this.width, this.height, this.fit, this.aspectRatio});
   String _createFirebaseUrl(String path) {
     // gs:// 버킷 주소 제거
     const prefix = 'gs://seol-haru-check.firebasestorage.app/';
@@ -19,34 +23,36 @@ class FirebaseStorageImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = _createFirebaseUrl(imagePath);
     log('Firebase Storage Image URL: $imageUrl');
-    return AspectRatio(
-      aspectRatio: 1, // 1:1 비율 강제
-      child: ClipRRect(
-        // 이미지가 비율을 벗어나지 않도록 자름
-        child: CachedNetworkImage(
-          fit: BoxFit.cover, // fill 대신 cover 사용하여 비율 유지하면서 채우기
-          imageUrl: imageUrl,
-          placeholder: (context, url) => const Center(child: CircularProgressIndicator.adaptive()),
-          errorWidget:
-              (context, url, error) => Center(
-                child: Container(
-                  width: double.infinity,
-                  color: Colors.grey,
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error, color: Colors.red),
-                      SizedBox(height: 8),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('이미지를 불러올 수 없어요', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
+    final image = CachedNetworkImage(
+      width: width,
+      height: height,
+      fit: fit ?? BoxFit.cover,
+      imageUrl: imageUrl,
+      placeholder: (context, url) => const Center(child: CircularProgressIndicator.adaptive()),
+      errorWidget:
+          (context, url, error) => Center(
+            child: Container(
+              width: double.infinity,
+              color: Colors.grey,
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, color: Colors.red),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('이미지를 불러올 수 없어요', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
                   ),
-                ),
+                ],
               ),
-        ),
-      ),
+            ),
+          ),
     );
+
+    if (aspectRatio != null) {
+      return AspectRatio(aspectRatio: aspectRatio!, child: ClipRRect(child: image));
+    }
+
+    return image;
   }
 }

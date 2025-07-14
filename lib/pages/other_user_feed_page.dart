@@ -137,9 +137,14 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (cert.photoUrl.isNotEmpty) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: FirebaseStorageImage(imagePath: cert.photoUrl),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(_createFullScreenImageRoute(cert.photoUrl, cert.content));
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: FirebaseStorageImage(imagePath: cert.photoUrl, aspectRatio: 1.0),
+                      ),
                     ),
                     const Gap(16),
                   ],
@@ -188,6 +193,72 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
           ),
         );
       },
+    );
+  }
+
+  PageRouteBuilder _createFullScreenImageRoute(String imageUrl, String content) {
+    return PageRouteBuilder(
+      opaque: false,
+      pageBuilder:
+          (context, animation, secondaryAnimation) => _FullScreenImageViewer(imageUrl: imageUrl, content: content),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
+  }
+}
+
+class _FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+  final String content;
+
+  const _FullScreenImageViewer({required this.imageUrl, required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black.withOpacity(0.8),
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: FirebaseStorageImage(
+                  imagePath: imageUrl,
+                  width: MediaQuery.of(context).size.width,
+                  fit: BoxFit.fitWidth,
+                ),
+              ),
+            ),
+            if (content.isNotEmpty)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                      stops: const [0.0, 0.4],
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 60, 20, 40),
+                      child: Text(content, style: FTextStyles.bodyM.copyWith(color: Colors.white, height: 1.5)),
+                    ),
+                  ),
+                ),
+              ),
+            Positioned(top: 40, right: 16, child: CloseButton(color: Colors.white)),
+          ],
+        ),
+      ),
     );
   }
 }
