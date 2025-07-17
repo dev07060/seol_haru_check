@@ -177,15 +177,17 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
                               if (cert.content.isNotEmpty)
                                 Container(
                                   width: double.infinity,
+                                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: fColors.backgroundNormalA,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text(
-                                    cert.content,
-                                    maxLines: 6,
-                                    style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      cert.content,
+                                      style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+                                    ),
                                   ),
                                 ),
                             ],

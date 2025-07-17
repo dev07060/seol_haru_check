@@ -21,7 +21,7 @@ enum AppRoutePath {
       case login:
         return '/login';
       case otherUserFeed:
-        return 'user/:uuid/feed';
+        return '/user/:uuid/feed';
       case adminTracker:
         return '/admin/tracker';
     }
@@ -51,16 +51,14 @@ class AppRouter {
         path: AppRoutePath.myFeed.relativePath,
         name: AppRoutePath.myFeed.name,
         builder: (context, state) => const MyFeedPage(),
-        routes: [
-          GoRoute(
-            path: AppRoutePath.otherUserFeed.relativePath,
-            name: AppRoutePath.otherUserFeed.name,
-            builder: (context, state) {
-              final uuid = state.pathParameters['uuid']!;
-              return OtherUserFeedPage(uuid: uuid);
-            },
-          ),
-        ],
+      ),
+      GoRoute(
+        path: '/user/:uuid/feed',
+        name: AppRoutePath.otherUserFeed.name,
+        builder: (context, state) {
+          final uuid = state.pathParameters['uuid']!;
+          return OtherUserFeedPage(uuid: uuid);
+        },
       ),
       GoRoute(
         path: AppRoutePath.login.relativePath,
