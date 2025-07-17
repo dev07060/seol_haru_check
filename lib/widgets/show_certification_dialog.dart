@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
@@ -51,7 +52,7 @@ void showCertificationDialog(
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.grey, size: 28),
                       tooltip: '닫기',
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => context.pop(),
                     ),
                   ],
                 ),

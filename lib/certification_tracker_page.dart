@@ -93,7 +93,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
 
     return FScaffold(
       appBar: FAppBar.back(context, title: AppStrings.participantsList, onBack: () => context.pop()),
-      body: users.isEmpty ? Center(child: Text('참여자가 아직 없습니다')) : _buildBody(),
+      body: users.isEmpty ? Center(child: Text(AppStrings.noParticipants)) : _buildBody(),
     );
   }
 
@@ -311,7 +311,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              '다른 참여자의 닉네임을 클릭하여 피드를 확인할 수 있어요',
+              AppStrings.clickNicknameToViewFeed,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),

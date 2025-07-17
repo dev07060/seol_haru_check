@@ -3,6 +3,7 @@ import 'dart:developer'; // log 사용을 위해 import 추가
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/models/certification_model.dart';
 
 // FirebaseAuth의 인증 상태 변경을 감지하는 Provider
@@ -117,6 +118,20 @@ final hasCertificationForMonthProvider = StreamProvider.family<bool, ({int year,
       .limit(1); // 하나라도 있는지 확인
 
   return query.snapshots().map((snapshot) => snapshot.docs.isNotEmpty);
+});
+
+// 사용자 닉네임을 가져오는 프로바이더
+final userNicknameProvider = FutureProvider.family<String, String>((ref, uuid) async {
+  try {
+    final userDoc = await FirebaseFirestore.instance.collection('users').where('uuid', isEqualTo: uuid).limit(1).get();
+    if (userDoc.docs.isNotEmpty) {
+      return userDoc.docs.first.data()['nickname'] ?? AppStrings.defaultUserName;
+    }
+    return AppStrings.defaultUserName;
+  } catch (e) {
+    log('Error fetching user name for $uuid: $e');
+    return AppStrings.defaultUserName;
+  }
 });
 
 // Repository for certification actions like deletion

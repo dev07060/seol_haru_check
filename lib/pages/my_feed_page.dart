@@ -19,7 +19,9 @@ import 'package:seol_haru_check/shared/components/f_solid_button.dart';
 import 'package:seol_haru_check/shared/components/f_toast.dart';
 import 'package:seol_haru_check/shared/themes/f_colors.dart';
 import 'package:seol_haru_check/shared/themes/f_font_styles.dart';
+import 'package:seol_haru_check/widgets/feed_page_indicator.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
+import 'package:seol_haru_check/widgets/full_screen_image_viewer.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
 
 class MyFeedPage extends ConsumerStatefulWidget {
@@ -31,6 +33,7 @@ class MyFeedPage extends ConsumerStatefulWidget {
 
 class _MyFeedPageState extends ConsumerState<MyFeedPage> {
   DateTime _focusedDate = DateTime.now();
+  final PageController _pageController = PageController(viewportFraction: 0.85);
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +44,7 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
       appBar: FAppBar(
         leading: IconButton(
           icon: const Icon(Icons.list),
-          onPressed: () => context.push(AppRoutePath.adminTracker.relativePath),
+          onPressed: () => context.goNamed(AppRoutePath.adminTracker.name),
         ),
         context,
         actions: [
@@ -180,8 +183,8 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
             // 가로 스크롤 카드
             Expanded(
               child: PageView.builder(
-                itemCount: certifications.length + (kDebugMode ? 1 : 0),
-                controller: PageController(viewportFraction: 0.85),
+                itemCount: certifications.length,
+                controller: _pageController,
                 itemBuilder: (context, index) {
                   log('uuid: ${certifications.last.uuid}');
                   if (kDebugMode && index == certifications.length) {
@@ -262,7 +265,9 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                         if (cert.photoUrl.isNotEmpty) ...[
                           GestureDetector(
                             onTap: () {
-                              Navigator.of(context).push(_createFullScreenImageRoute(cert.photoUrl, cert.content));
+                              Navigator.of(
+                                context,
+                              ).push(FullScreenImageViewer.createRoute(cert.photoUrl, cert.content));
                             },
                             child: ClipRRect(
                               borderRadius: const BorderRadius.only(
@@ -277,60 +282,65 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                             ),
                           ),
                         ],
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  FChip.outline(label: cert.type.displayName, onTap: () {}),
-                                  TextButton(
-                                    onPressed: () async {
-                                      FDialog.twoButton(
-                                        context,
-                                        title: AppStrings.confirmDeleteCertificationTitle,
-                                        description: AppStrings.confirmDeleteCertificationDescription,
-                                        onConfirm: () async {
-                                          try {
-                                            await ref
-                                                .read(certificationRepositoryProvider)
-                                                .deleteCertification(cert.docId);
-                                            FToast(message: AppStrings.certificationDeletedSuccessfully).show(context);
-                                          } catch (e) {
-                                            FToast(message: AppStrings.certificationDeletionFailed).show(context);
-                                            debugPrint('Error deleting certification: $e');
-                                          }
-                                        },
-                                        confirmText: AppStrings.delete,
-                                      ).show(context);
-                                    },
-                                    child: Text(
-                                      AppStrings.delete,
-                                      style: FTextStyles.body1_16Rd.copyWith(color: fColors.red),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    FChip.outline(label: cert.type.displayName, onTap: () {}),
+                                    TextButton(
+                                      onPressed: () async {
+                                        FDialog.twoButton(
+                                          context,
+                                          title: AppStrings.confirmDeleteCertificationTitle,
+                                          description: AppStrings.confirmDeleteCertificationDescription,
+                                          onConfirm: () async {
+                                            try {
+                                              await ref
+                                                  .read(certificationRepositoryProvider)
+                                                  .deleteCertification(cert.docId);
+                                              FToast(
+                                                message: AppStrings.certificationDeletedSuccessfully,
+                                              ).show(context);
+                                            } catch (e) {
+                                              FToast(message: AppStrings.certificationDeletionFailed).show(context);
+                                              debugPrint('Error deleting certification: $e');
+                                            }
+                                          },
+                                          confirmText: AppStrings.delete,
+                                        ).show(context);
+                                      },
+                                      child: Text(
+                                        AppStrings.delete,
+                                        style: FTextStyles.body1_16Rd.copyWith(color: fColors.red),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const Gap(16),
-                              if (cert.content.isNotEmpty)
-                                Container(
-                                  width: double.infinity,
-                                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: fColors.backgroundNormalA,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: SingleChildScrollView(
-                                    child: Text(
-                                      cert.content,
-                                      style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
-                                    ),
-                                  ),
+                                  ],
                                 ),
-                            ],
+                                const Gap(16),
+                                if (cert.content.isNotEmpty)
+                                  Expanded(
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: fColors.backgroundNormalA,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: SingleChildScrollView(
+                                        child: Text(
+                                          cert.content,
+                                          style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -340,26 +350,8 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
               ),
             ),
             // 페이지 인디케이터 (하단으로 이동)
-            if (certifications.length > 1) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    certifications.length,
-                    (index) => Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: FColors.of(context).labelAssistive.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            if (certifications.length > 1)
+              FeedPageIndicator(count: certifications.length, currentPage: _pageController.page?.round() ?? 0),
           ],
         );
       },
@@ -375,72 +367,6 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
           ),
         );
       },
-    );
-  }
-
-  PageRouteBuilder _createFullScreenImageRoute(String imageUrl, String content) {
-    return PageRouteBuilder(
-      opaque: false,
-      pageBuilder:
-          (context, animation, secondaryAnimation) => _FullScreenImageViewer(imageUrl: imageUrl, content: content),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-    );
-  }
-}
-
-class _FullScreenImageViewer extends StatelessWidget {
-  final String imageUrl;
-  final String content;
-
-  const _FullScreenImageViewer({required this.imageUrl, required this.content});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: 0.8),
-      body: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Stack(
-          children: [
-            Center(
-              child: SingleChildScrollView(
-                child: FirebaseStorageImage(
-                  imagePath: imageUrl,
-                  width: MediaQuery.of(context).size.width,
-                  fit: BoxFit.fitWidth,
-                ),
-              ),
-            ),
-            if (content.isNotEmpty)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                      stops: const [0.0, 0.4],
-                    ),
-                  ),
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 60, 20, 40),
-                      child: Text(content, style: FTextStyles.bodyM.copyWith(color: Colors.white, height: 1.5)),
-                    ),
-                  ),
-                ),
-              ),
-            Positioned(top: 40, right: 16, child: CloseButton(color: Colors.white)),
-          ],
-        ),
-      ),
     );
   }
 }
