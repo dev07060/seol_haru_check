@@ -111,75 +111,114 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
             ),
           );
         }
-        return ListView.builder(
-          itemCount: certifications.length,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          itemBuilder: (_, index) {
-            final cert = certifications[index];
-            final fColors = FColors.of(context);
 
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: FColors.of(context).backgroundNormalN,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: fColors.lineNormal, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: FColors.of(context).labelDisable.withValues(alpha: .08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (cert.photoUrl.isNotEmpty) ...[
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(_createFullScreenImageRoute(cert.photoUrl, cert.content));
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: FirebaseStorageImage(imagePath: cert.photoUrl, aspectRatio: 1.0),
-                      ),
+        return Column(
+          children: [
+            // 가로 스크롤 카드
+            Expanded(
+              child: PageView.builder(
+                itemCount: certifications.length,
+                controller: PageController(viewportFraction: 0.85),
+                itemBuilder: (context, index) {
+                  final cert = certifications[index];
+                  final fColors = FColors.of(context);
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+                    decoration: BoxDecoration(
+                      color: FColors.of(context).backgroundNormalN,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: fColors.lineNormal, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: FColors.of(context).labelDisable.withValues(alpha: .12),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    const Gap(16),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [FChip.outline(label: cert.type.displayName, onTap: () {})],
-                  ),
-                  const Gap(16),
-                  if (cert.content.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (cert.photoUrl.isNotEmpty) ...[
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(_createFullScreenImageRoute(cert.photoUrl, cert.content));
+                            },
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(20),
+                                topRight: Radius.circular(20),
+                              ),
+                              child: FirebaseStorageImage(
+                                imagePath: cert.photoUrl,
+                                aspectRatio: 1.0,
+                                width: double.infinity,
+                              ),
+                            ),
+                          ),
+                        ],
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  FChip.outline(label: cert.type.displayName, onTap: () {}),
+                                  Text(
+                                    DateFormat('HH:mm').format(cert.createdAt.toLocal()),
+                                    style: FTextStyles.body1_16.copyWith(color: fColors.labelAssistive),
+                                  ),
+                                ],
+                              ),
+                              const Gap(16),
+                              if (cert.content.isNotEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: fColors.backgroundNormalA,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    cert.content,
+                                    maxLines: 8,
+                                    style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            // 페이지 인디케이터 (하단으로 이동)
+            if (certifications.length > 1) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    certifications.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        color: fColors.backgroundNormalA,
-                        borderRadius: BorderRadius.circular(8),
+                        shape: BoxShape.circle,
+                        color: FColors.of(context).labelAssistive.withValues(alpha: 0.4),
                       ),
-                      child: Text(
-                        cert.content,
-                        style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.5),
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  const Gap(8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      DateFormat('yyyy.MM.dd HH:mm').format(cert.createdAt.toLocal()),
-                      style: FTextStyles.body1_16.copyWith(color: fColors.labelAssistive),
                     ),
                   ),
-                ],
+                ),
               ),
-            );
-          },
+            ],
+          ],
         );
       },
       loading: () => Center(child: CircularProgressIndicator.adaptive()),

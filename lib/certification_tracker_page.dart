@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/router.dart';
+import 'package:seol_haru_check/shared/components/f_app_bar.dart';
+import 'package:seol_haru_check/shared/components/f_scaffold.dart';
 import 'package:seol_haru_check/shared/themes/f_font_styles.dart';
 import 'package:seol_haru_check/table_data_from_firestore.dart';
 
@@ -88,12 +91,8 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
       return const Scaffold(body: Center(child: CircularProgressIndicator.adaptive()));
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('참여자 리스트'),
-        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back)),
-        centerTitle: true,
-      ),
+    return FScaffold(
+      appBar: FAppBar.back(context, title: AppStrings.participantsList, onBack: () => context.pop()),
       body: users.isEmpty ? Center(child: Text('참여자가 아직 없습니다')) : _buildBody(),
     );
   }
@@ -156,30 +155,27 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
           const Gap(12),
           // User cards
           ...sortedUsers.map(
-            (user) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // User info
-                  SizedBox(
-                    width: 80,
-                    child: GestureDetector(
-                      onTap: () {
-                        context.push(
-                          AppRouter.router.namedLocation(
-                            AppRoutePath.otherUserFeed.name,
-                            pathParameters: {'uuid': user.uuid},
-                          ),
-                        );
-                      },
+            (user) => GestureDetector(
+              onTap: () {
+                context.push(
+                  AppRouter.router.namedLocation(AppRoutePath.otherUserFeed.name, pathParameters: {'uuid': user.uuid}),
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 8, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // User info
+                    SizedBox(
+                      width: 80,
                       child: Row(
                         children: [
                           const CircleAvatar(radius: 8, backgroundColor: Color(0xFFE0E0E0)),
@@ -198,100 +194,101 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                         ],
                       ),
                     ),
-                  ),
-                  // Status indicators
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children:
-                          weekDates.map((date) {
-                            final status = getStatus(user.uuid, date);
-                            final isToday = DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
-                            final isPast = date.isBefore(today);
+                    // Status indicators
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children:
+                            weekDates.map((date) {
+                              final status = getStatus(user.uuid, date);
+                              final isToday =
+                                  DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
+                              final isPast = date.isBefore(today);
 
-                            Color bgColor;
-                            Widget child;
-                            VoidCallback? onTap;
+                              Color bgColor;
+                              Widget child;
+                              VoidCallback? onTap;
 
-                            if (status == true) {
-                              log(
-                                'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
-                              );
-                              bgColor = const Color(0xFFDFF6E4);
-                              onTap = () async {
-                                // On-tap logic for certified days
-                              };
-                              child = FutureBuilder<QuerySnapshot>(
-                                future:
-                                    FirebaseFirestore.instance
-                                        .collection('certifications')
-                                        .where('uuid', isEqualTo: user.uuid)
-                                        .get(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const SizedBox(width: 16, height: 16);
-                                  }
-                                  if (!snapshot.hasData) {
-                                    return const SizedBox(width: 16, height: 16);
-                                  }
-                                  final selectedDate = DateFormat('yyyyMMdd').format(date);
-                                  final certDocs =
-                                      snapshot.data!.docs.where((doc) {
-                                        final createdAt = (doc['createdAt'] as Timestamp).toDate();
-                                        return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
-                                      }).toList();
-                                  return Text(
-                                    certDocs.length == 1
-                                        ? '😀'
-                                        : certDocs.length == 2
-                                        ? '😎'
-                                        : certDocs.length >= 3
-                                        ? '🔥'
-                                        : '',
-                                    style: const TextStyle(
-                                      color: Color(0xFF2E7D32),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  );
-                                },
-                              );
-                            } else if (status == false) {
-                              bgColor = const Color(0xFFFDECEA);
-                              child = const Icon(Icons.close, color: Color(0xFFC62828), size: 16);
-                            } else if (isToday) {
-                              bgColor = const Color(0xFFE3F2FD);
-                              child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
-                              onTap = () async {
-                                // On-tap logic for today
-                              };
-                            } else if (isPast) {
-                              bgColor = const Color(0xFFF7F7F7);
-                              child = const Text(
-                                '-',
-                                style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
-                              );
-                            } else {
-                              bgColor = const Color(0xFFF7F7F7);
-                              child = const Text(
-                                '-',
-                                style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
-                              );
-                            }
+                              if (status == true) {
+                                log(
+                                  'Rendering check icon for user ${user.uuid} on date ${DateFormat('yyyyMMdd').format(date)}',
+                                );
+                                bgColor = const Color(0xFFDFF6E4);
+                                onTap = () async {
+                                  // On-tap logic for certified days
+                                };
+                                child = FutureBuilder<QuerySnapshot>(
+                                  future:
+                                      FirebaseFirestore.instance
+                                          .collection('certifications')
+                                          .where('uuid', isEqualTo: user.uuid)
+                                          .get(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const SizedBox(width: 16, height: 16);
+                                    }
+                                    if (!snapshot.hasData) {
+                                      return const SizedBox(width: 16, height: 16);
+                                    }
+                                    final selectedDate = DateFormat('yyyyMMdd').format(date);
+                                    final certDocs =
+                                        snapshot.data!.docs.where((doc) {
+                                          final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                                          return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
+                                        }).toList();
+                                    return Text(
+                                      certDocs.length == 1
+                                          ? '😀'
+                                          : certDocs.length == 2
+                                          ? '😎'
+                                          : certDocs.length >= 3
+                                          ? '🔥'
+                                          : '',
+                                      style: const TextStyle(
+                                        color: Color(0xFF2E7D32),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                );
+                              } else if (status == false) {
+                                bgColor = const Color(0xFFFDECEA);
+                                child = const Icon(Icons.close, color: Color(0xFFC62828), size: 16);
+                              } else if (isToday) {
+                                bgColor = const Color(0xFFE3F2FD);
+                                child = const Icon(Icons.add, color: Color(0xFF1976D2), size: 16);
+                                onTap = () async {
+                                  // On-tap logic for today
+                                };
+                              } else if (isPast) {
+                                bgColor = const Color(0xFFF7F7F7);
+                                child = const Text(
+                                  '-',
+                                  style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
+                                );
+                              } else {
+                                bgColor = const Color(0xFFF7F7F7);
+                                child = const Text(
+                                  '-',
+                                  style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.w600, fontSize: 16),
+                                );
+                              }
 
-                            return GestureDetector(
-                              onTap: onTap,
-                              child: Container(
-                                height: 32,
-                                width: 32,
-                                decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-                                child: Center(child: child),
-                              ),
-                            );
-                          }).toList(),
+                              return GestureDetector(
+                                onTap: onTap,
+                                child: Container(
+                                  height: 32,
+                                  width: 32,
+                                  decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                                  child: Center(child: child),
+                                ),
+                              );
+                            }).toList(),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

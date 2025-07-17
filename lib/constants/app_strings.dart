@@ -7,6 +7,7 @@ class AppStrings {
   static const String refresh = '새로고침';
   static const String guideText = '참여자의 칸을 클릭하여 운동 완료 상태를 변경할 수 있습니다';
   static const String participants = '참여자';
+  static const String participantsList = '참여자 리스트';
   static const String noParticipants = '참여자가 아직 없습니다';
   static const String noCertificationOnThisDay = '이 날짜에는 인증 기록이 없습니다.';
   static const String noCertificationOnToDay = '오늘은 아직 인증 기록이 없습니다.';
@@ -15,6 +16,7 @@ class AppStrings {
   static const String noCertificationOnThisDayOther = '님은 이 날짜에 인증 기록이 없습니다.';
   static const String noCertificationOnToDayOther = '님은 오늘 아직 인증 기록이 없습니다.';
   static const String myActivityFeed = '내 활동 피드';
+  static const String clickNicknameToViewFeed = '다른 참여자의 닉네임을 클릭하여 피드를 확인할 수 있어요';
 
   // 참가하기 다이얼로그 관련 문자열
   static const String join = '참가하기';

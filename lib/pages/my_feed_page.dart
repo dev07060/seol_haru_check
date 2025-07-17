@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart' show User;
 import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/providers/feed_provider.dart';
@@ -176,133 +175,184 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
             ),
           );
         }
-        return ListView.builder(
-          itemCount: certifications.length + (kDebugMode ? 1 : 0),
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          itemBuilder: (_, index) {
-            log('uuid: ${certifications.last.uuid}');
-            if (kDebugMode && index == certifications.length) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-                child: FSolidButton.primary(
-                  text: AppStrings.migrateOldDataButton,
-                  onPressed: () {
-                    final currentUser = FirebaseAuth.instance.currentUser;
-                    if (currentUser == null) {
-                      FToast(message: AppStrings.loginRequired).show(context);
-                      return;
-                    }
-                    FDialog.twoButton(
-                      context,
-                      title: AppStrings.confirmDataMigrationTitle,
-                      description: AppStrings.confirmDataMigrationDescription,
-                      confirmText: AppStrings.migrateOldDataButton,
-                      onConfirm: () async {
-                        final userEmail = currentUser.email;
-                        if (userEmail == null || !userEmail.contains('@')) {
-                          FToast(message: "사용자 이메일을 가져올 수 없습니다.").show(context);
-                          return;
-                        }
-                        final emailLocalPart = userEmail.split('@')[0];
-
-                        try {
-                          await ref
-                              .read(certificationRepositoryProvider)
-                              .migrateCertificationsByNickname(emailLocalPart, currentUser.uid);
-                          FToast(message: AppStrings.dataMigrationSuccessful).show(context);
-                        } catch (e) {
-                          FToast(message: AppStrings.dataMigrationFailed).show(context);
-                          debugPrint('Data migration failed: $e');
-                        }
-                      },
-                    ).show(context);
-                  },
-                ),
-              );
-            }
-
-            final cert = certifications[index];
-            final fColors = FColors.of(context);
-
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: FColors.of(context).backgroundNormalN,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: fColors.lineNormal, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: FColors.of(context).labelDisable.withValues(alpha: .08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (cert.photoUrl.isNotEmpty) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: FirebaseStorageImage(imagePath: cert.photoUrl),
-                    ),
-                    const Gap(16),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      FChip.outline(label: cert.type.displayName, onTap: () {}),
-                      TextButton(
-                        onPressed: () async {
-                          FDialog.twoButton(
-                            context,
-                            title: AppStrings.confirmDeleteCertificationTitle,
-                            description: AppStrings.confirmDeleteCertificationDescription,
-                            onConfirm: () async {
-                              try {
-                                await ref.read(certificationRepositoryProvider).deleteCertification(cert.docId);
-                                FToast(message: AppStrings.certificationDeletedSuccessfully).show(context);
-                              } catch (e) {
-                                FToast(message: AppStrings.certificationDeletionFailed).show(context);
-                                debugPrint('Error deleting certification: $e');
-                              }
-                            },
-                            confirmText: AppStrings.delete,
-                          ).show(context);
-                        },
-                        child: Text(AppStrings.delete, style: FTextStyles.body1_16Rd.copyWith(color: fColors.red)),
-                      ),
-                    ],
-                  ),
-                  const Gap(16),
-                  if (cert.content.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+        return Column(
+          children: [
+            // 가로 스크롤 카드
+            Expanded(
+              child: PageView.builder(
+                itemCount: certifications.length + (kDebugMode ? 1 : 0),
+                controller: PageController(viewportFraction: 0.85),
+                itemBuilder: (context, index) {
+                  log('uuid: ${certifications.last.uuid}');
+                  if (kDebugMode && index == certifications.length) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: fColors.backgroundNormalA,
-                        borderRadius: BorderRadius.circular(8),
+                        color: FColors.of(context).backgroundNormalN,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: FColors.of(context).lineNormal, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: FColors.of(context).labelDisable.withValues(alpha: .12),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        cert.content,
-                        style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.5),
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
+                      child: Center(
+                        child: FSolidButton.primary(
+                          text: AppStrings.migrateOldDataButton,
+                          onPressed: () {
+                            final currentUser = FirebaseAuth.instance.currentUser;
+                            if (currentUser == null) {
+                              FToast(message: AppStrings.loginRequired).show(context);
+                              return;
+                            }
+                            FDialog.twoButton(
+                              context,
+                              title: AppStrings.confirmDataMigrationTitle,
+                              description: AppStrings.confirmDataMigrationDescription,
+                              confirmText: AppStrings.migrateOldDataButton,
+                              onConfirm: () async {
+                                final userEmail = currentUser.email;
+                                if (userEmail == null || !userEmail.contains('@')) {
+                                  FToast(message: "사용자 이메일을 가져올 수 없습니다.").show(context);
+                                  return;
+                                }
+                                final emailLocalPart = userEmail.split('@')[0];
+
+                                try {
+                                  await ref
+                                      .read(certificationRepositoryProvider)
+                                      .migrateCertificationsByNickname(emailLocalPart, currentUser.uid);
+                                  FToast(message: AppStrings.dataMigrationSuccessful).show(context);
+                                } catch (e) {
+                                  FToast(message: AppStrings.dataMigrationFailed).show(context);
+                                  debugPrint('Data migration failed: $e');
+                                }
+                              },
+                            ).show(context);
+                          },
+                        ),
                       ),
+                    );
+                  }
+
+                  final cert = certifications[index];
+                  final fColors = FColors.of(context);
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+                    decoration: BoxDecoration(
+                      color: FColors.of(context).backgroundNormalN,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: fColors.lineNormal, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: FColors.of(context).labelDisable.withValues(alpha: .12),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  const Gap(8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      DateFormat('yyyy.MM.dd HH:mm').format(cert.createdAt.toLocal()),
-                      style: FTextStyles.body1_16.copyWith(color: fColors.labelAssistive),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (cert.photoUrl.isNotEmpty) ...[
+                          ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                            child: FirebaseStorageImage(
+                              imagePath: cert.photoUrl,
+                              aspectRatio: 1.0,
+                              width: double.infinity,
+                            ),
+                          ),
+                        ],
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  FChip.outline(label: cert.type.displayName, onTap: () {}),
+                                  TextButton(
+                                    onPressed: () async {
+                                      FDialog.twoButton(
+                                        context,
+                                        title: AppStrings.confirmDeleteCertificationTitle,
+                                        description: AppStrings.confirmDeleteCertificationDescription,
+                                        onConfirm: () async {
+                                          try {
+                                            await ref
+                                                .read(certificationRepositoryProvider)
+                                                .deleteCertification(cert.docId);
+                                            FToast(message: AppStrings.certificationDeletedSuccessfully).show(context);
+                                          } catch (e) {
+                                            FToast(message: AppStrings.certificationDeletionFailed).show(context);
+                                            debugPrint('Error deleting certification: $e');
+                                          }
+                                        },
+                                        confirmText: AppStrings.delete,
+                                      ).show(context);
+                                    },
+                                    child: Text(
+                                      AppStrings.delete,
+                                      style: FTextStyles.body1_16Rd.copyWith(color: fColors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Gap(16),
+                              if (cert.content.isNotEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: fColors.backgroundNormalA,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    cert.content,
+                                    style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            // 페이지 인디케이터 (하단으로 이동)
+            if (certifications.length > 1) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    certifications.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: FColors.of(context).labelAssistive.withValues(alpha: 0.4),
+                      ),
                     ),
                   ),
-                ],
+                ),
               ),
-            );
-          },
+            ],
+          ],
         );
       },
       loading:
