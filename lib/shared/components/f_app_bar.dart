@@ -59,11 +59,7 @@ class FAppBar extends AppBar {
     surfaceTintColor: surfaceTintColor,
     leading: GestureDetector(
       onTap: () => onBack == null ? Navigator.pop(context) : onBack(),
-      child: SizedBox(
-        width: 24,
-        height: 24,
-        child: Center(child: SPSvg.asset(Assets.iconsArrowLeft, color: FColors.of(context).labelNormal)),
-      ),
+      child: SizedBox(width: 24, height: 24, child: Center(child: Icon(Icons.arrow_back_ios_new))),
     ),
     actions: actions,
   );
