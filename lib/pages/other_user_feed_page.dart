@@ -76,7 +76,6 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
               });
             },
           ),
-          const Divider(),
           Expanded(child: _buildFeed()),
         ],
       ),

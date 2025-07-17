@@ -95,7 +95,6 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
               });
             },
           ),
-          const Divider(),
           Expanded(child: _buildFeed()),
         ],
       ),
@@ -202,12 +201,12 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                   log('uuid: ${certifications.last.uuid}');
                   if (kDebugMode && index == certifications.length) {
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-                      padding: const EdgeInsets.all(20),
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: FColors.of(context).backgroundNormalN,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: FColors.of(context).lineNormal, width: 1),
+                        border: Border.all(color: FColors.of(context).lineNormal, width: .5),
                         boxShadow: [
                           BoxShadow(
                             color: FColors.of(context).labelDisable.withValues(alpha: .12),
