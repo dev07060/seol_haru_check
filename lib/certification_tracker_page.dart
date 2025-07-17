@@ -113,43 +113,45 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
-            child: Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children:
-                    weekDates.asMap().entries.map((entry) {
-                      final date = entry.value;
-                      final dayName = days[(date.weekday - 1) % 7];
-                      final isToday = DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children:
+                  weekDates.asMap().entries.map((entry) {
+                    final date = entry.value;
+                    final dayName = days[(date.weekday - 1) % 7];
+                    final isToday = DateFormat('yyyyMMdd').format(date) == DateFormat('yyyyMMdd').format(today);
 
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isToday ? Colors.white.withOpacity(0.2) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: isToday ? Border.all(color: Colors.white.withOpacity(0.3)) : null,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              dayName,
-                              style: TextStyle(
-                                fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
-                                fontSize: 13,
-                                color: Colors.white,
-                              ),
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isToday ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: isToday ? Border.all(color: Colors.white.withValues(alpha: 0.3)) : null,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            dayName,
+                            style: TextStyle(
+                              fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.white,
                             ),
-                            const Gap(2),
-                            Text('${date.day}', style: FTextStyles.body1_16Rd.copyWith(color: Colors.white)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-              ),
+                          ),
+                          const Gap(2),
+                          Text('${date.day}', style: FTextStyles.body1_16Rd.copyWith(color: Colors.white)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
             ),
           ),
           const Gap(12),

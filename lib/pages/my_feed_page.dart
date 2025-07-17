@@ -319,6 +319,7 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                                   ),
                                   child: Text(
                                     cert.content,
+                                    maxLines: 6,
                                     style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
                                   ),
                                 ),

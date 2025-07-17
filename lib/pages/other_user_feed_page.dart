@@ -184,7 +184,7 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
                                   ),
                                   child: Text(
                                     cert.content,
-                                    maxLines: 8,
+                                    maxLines: 6,
                                     style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
                                   ),
                                 ),
