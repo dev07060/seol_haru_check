@@ -92,7 +92,17 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
     }
 
     return FScaffold(
-      appBar: FAppBar.back(context, title: AppStrings.participantsList, onBack: () => context.pop()),
+      appBar: FAppBar.back(
+        context,
+        title: AppStrings.participantsList,
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(AppRoutePath.myFeed.relativePath);
+          }
+        },
+      ),
       body: users.isEmpty ? Center(child: Text(AppStrings.noParticipants)) : _buildBody(),
     );
   }
