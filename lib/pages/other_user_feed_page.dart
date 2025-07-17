@@ -27,11 +27,21 @@ class OtherUserFeedPage extends ConsumerStatefulWidget {
 class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
   DateTime _focusedDate = DateTime.now();
   final PageController _pageController = PageController(viewportFraction: 0.85);
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
     final currentUser = FirebaseAuth.instance.currentUser;
+
+    _pageController.addListener(() {
+      if (_pageController.page?.round() != _currentPage) {
+        setState(() {
+          _currentPage = _pageController.page!.round();
+        });
+      }
+    });
+
     if (currentUser != null && currentUser.uid == widget.uuid) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go('/');
@@ -58,7 +68,7 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
         children: [
           FDatePicker(
             focusedDay: _focusedDate,
-            targetUuid: widget.uuid,
+            targetUuid: widget.uuid, // 이 부분이 이미 올바르게 설정되어 있다면 FDatePicker 내부 로직 문제일 수 있습니다.
             calendarFormat: FCalendarFormat.week,
             onChangedDay: (selectedDay) {
               setState(() {
@@ -198,8 +208,7 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
               ),
             ),
             // 페이지 인디케이터 (하단으로 이동)
-            if (certifications.length > 1)
-              FeedPageIndicator(count: certifications.length, currentPage: _pageController.page?.round() ?? 0),
+            if (certifications.length > 1) FeedPageIndicator(count: certifications.length, currentPage: _currentPage),
           ],
         );
       },

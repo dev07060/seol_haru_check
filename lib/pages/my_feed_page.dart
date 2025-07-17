@@ -34,6 +34,19 @@ class MyFeedPage extends ConsumerStatefulWidget {
 class _MyFeedPageState extends ConsumerState<MyFeedPage> {
   DateTime _focusedDate = DateTime.now();
   final PageController _pageController = PageController(viewportFraction: 0.85);
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(() {
+      if (_pageController.page?.round() != _currentPage) {
+        setState(() {
+          _currentPage = _pageController.page!.round();
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -350,8 +363,7 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
               ),
             ),
             // 페이지 인디케이터 (하단으로 이동)
-            if (certifications.length > 1)
-              FeedPageIndicator(count: certifications.length, currentPage: _pageController.page?.round() ?? 0),
+            if (certifications.length > 1) FeedPageIndicator(count: certifications.length, currentPage: _currentPage),
           ],
         );
       },
