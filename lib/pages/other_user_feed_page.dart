@@ -150,7 +150,7 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
                   ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [FChip.outline(label: cert.type, onTap: () {})],
+                    children: [FChip.outline(label: cert.type.displayName, onTap: () {})],
                   ),
                   const Gap(16),
                   if (cert.content.isNotEmpty)

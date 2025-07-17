@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:seol_haru_check/enums/certification_type.dart';
 
 class Certification {
   final String docId;
   final String uuid;
   final String nickname;
   final DateTime createdAt;
-  final String type;
+  final CertificationType type;
   final String content;
   final String photoUrl;
 
@@ -26,7 +27,7 @@ class Certification {
       uuid: map['uuid'] ?? '',
       nickname: map['nickname'] ?? '',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
-      type: map['type'] ?? '',
+      type: CertificationType.fromDisplayName(map['type'] ?? '운동'),
       content: map['content'] ?? '',
       photoUrl: map['photoUrl'] ?? '',
     );
@@ -38,7 +39,7 @@ class Certification {
       'uuid': uuid,
       'nickname': nickname,
       'createdAt': createdAt,
-      'type': type,
+      'type': type.displayName,
       'content': content,
       'photoUrl': photoUrl,
     };

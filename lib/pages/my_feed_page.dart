@@ -252,7 +252,7 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      FChip.outline(label: cert.type, onTap: () {}),
+                      FChip.outline(label: cert.type.displayName, onTap: () {}),
                       TextButton(
                         onPressed: () async {
                           FDialog.twoButton(

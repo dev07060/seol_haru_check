@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
+import 'package:seol_haru_check/enums/certification_type.dart';
 import 'package:seol_haru_check/shared/components/f_bottom_sheet.dart';
 import 'package:seol_haru_check/shared/components/f_dialog.dart';
 import 'package:seol_haru_check/shared/components/f_solid_button.dart';
@@ -42,7 +43,7 @@ class _AddCertificationContent extends StatefulWidget {
 }
 
 class _AddCertificationContentState extends State<_AddCertificationContent> {
-  static String selectedType = '운동';
+  static CertificationType selectedType = CertificationType.exercise;
   static final contentController = TextEditingController();
   static final passwordController = TextEditingController();
   static Uint8List? selectedImageBytes;
@@ -56,7 +57,7 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
     super.dispose();
   }
 
-  List<String> get types => ['운동', '식단'];
+  List<String> get types => CertificationType.displayNames;
   // 이미지 압축 함수
   Future<Uint8List?> compressImage(Uint8List imageBytes) async {
     try {
@@ -102,11 +103,11 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
               ),
               const Gap(8),
               FTab.capsuleTab(
-                currentIndex: types.indexOf(selectedType),
+                currentIndex: CertificationType.values.indexOf(selectedType),
                 tabList: types,
                 size: CapsuleTapSize.small,
                 onChangedTap: (index) {
-                  setState(() => selectedType = types[index]);
+                  setState(() => selectedType = CertificationType.values[index]);
                 },
               ),
               const Gap(8),
@@ -252,7 +253,7 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         'uuid': widget.user.uuid,
         'nickname': widget.user.name,
         'createdAt': now,
-        'type': _AddCertificationContentState.selectedType,
+        'type': _AddCertificationContentState.selectedType.displayName,
         'content': _AddCertificationContentState.contentController.text.trim(),
         'photoUrl': gsUrl,
       });
