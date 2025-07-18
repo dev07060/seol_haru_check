@@ -362,7 +362,9 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
               ),
             ),
             // 페이지 인디케이터 (하단으로 이동)
-            if (certifications.length > 1) FeedPageIndicator(count: certifications.length, currentPage: _currentPage),
+            certifications.length > 1
+                ? FeedPageIndicator(count: certifications.length, currentPage: _currentPage)
+                : const Gap(48),
           ],
         );
       },
