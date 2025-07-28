@@ -66,18 +66,18 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
             onPressed:
                 () => FDialog.twoButton(
                   context,
-                  title: '로그아웃',
-                  description: '정말 로그아웃 하시겠습니까?',
+                  title: AppStrings.logout,
+                  description: AppStrings.confirmLogout,
                   onConfirm: () async {
                     try {
                       FirebaseAuth.instance.signOut();
-                      FToast(message: '로그아웃 되었습니다.').show(context);
+                      FToast(message: AppStrings.logoutSuccess).show(context);
                     } catch (e) {
-                      FToast(message: '로그아웃 실패. 잠시후 다시 시도해주세요').show(context);
+                      FToast(message: AppStrings.logoutFailed).show(context);
                       debugPrint('Error deleting certification: $e');
                     }
                   },
-                  confirmText: '로그아웃',
+                  confirmText: AppStrings.logout,
                 ).show(context),
           ),
         ],
@@ -232,7 +232,7 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                               onConfirm: () async {
                                 final userEmail = currentUser.email;
                                 if (userEmail == null || !userEmail.contains('@')) {
-                                  FToast(message: "사용자 이메일을 가져올 수 없습니다.").show(context);
+                                  FToast(message: AppStrings.cannotGetUserEmail).show(context);
                                   return;
                                 }
                                 final emailLocalPart = userEmail.split('@')[0];

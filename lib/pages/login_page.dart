@@ -28,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       // 로그인이 성공하면 라우터가 알아서 홈으로 보냅니다.
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('로그인 실패: ${e.message}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppStrings.loginFailed}: ${e.message}')));
     }
   }
 
@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (nickname.isEmpty || password.length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('닉네임과 4자리 비밀번호를 모두 올바르게 입력해주세요.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.nicknameAndPasswordRequired)));
       return;
     }
 
@@ -48,25 +48,25 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (userCredential.user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-          'nickname': nickname,
-          'uuid': userCredential.user!.uid,
-          'createdAt': FieldValue.serverTimestamp(),
+        await FirebaseFirestore.instance.collection(AppStrings.usersCollection).doc(userCredential.user!.uid).set({
+          AppStrings.nicknameField: nickname,
+          AppStrings.uuidField: userCredential.user!.uid,
+          AppStrings.createdAtField: FieldValue.serverTimestamp(),
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('회원가입에 성공했습니다. 자동으로 로그인됩니다.')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.signUpSuccess)));
         }
       }
     } on FirebaseAuthException catch (e) {
-      String message = '회원가입에 실패했습니다. 다시 시도해주세요.';
+      String message = AppStrings.signUpFailed;
       if (e.code == 'email-already-in-use') {
-        message = '이미 사용 중인 닉네임입니다.';
+        message = AppStrings.nicknameAlreadyInUse;
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('알 수 없는 오류가 발생했습니다: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppStrings.unknownError}: $e')));
     }
   }
 
@@ -91,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
               const Gap(32),
               FTextField(
                 controller: _nicknameController,
-                hintText: '닉네임을 입력해 주세요.',
+                hintText: AppStrings.nicknameHint,
                 textInputType: TextInputType.emailAddress,
               ),
               const Gap(16),
@@ -105,9 +105,9 @@ class _LoginPageState extends State<LoginPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FSolidButton.primary(text: '로그인', onPressed: _signIn),
+                  FSolidButton.primary(text: AppStrings.login, onPressed: _signIn),
                   const Gap(36),
-                  FSolidButton.secondary(text: '회원가입(ID 생성시에만)', onPressed: _signUp),
+                  FSolidButton.secondary(text: AppStrings.signUp, onPressed: _signUp),
                 ],
               ),
             ],

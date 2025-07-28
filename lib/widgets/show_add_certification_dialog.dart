@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/enums/certification_type.dart';
 import 'package:seol_haru_check/shared/components/f_bottom_sheet.dart';
 import 'package:seol_haru_check/shared/components/f_dialog.dart';
@@ -91,13 +92,13 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                '인증 추가하기',
+                AppStrings.addCertification,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 textAlign: TextAlign.center,
               ),
               const Gap(8),
               const Text(
-                '하루 최대 3개까지 업로드 가능',
+                AppStrings.uploadLimit,
                 style: TextStyle(fontSize: 12, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -111,7 +112,7 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
                 },
               ),
               const Gap(8),
-              FTextField(controller: contentController, hintText: '인증 내용을 입력하세요', maxLines: 3),
+              FTextField(controller: contentController, hintText: AppStrings.contentHint, maxLines: 3),
 
               const Gap(8),
               FSolidButton.assistive(
@@ -127,7 +128,7 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
                   }
                 },
                 size: FSolidButtonSize.small,
-                text: selectedImageBytes == null ? '이미지 선택' : '이미지 변경',
+                text: selectedImageBytes == null ? AppStrings.selectImage : AppStrings.changeImage,
               ),
 
               if (selectedImageBytes != null) ...[
@@ -190,10 +191,10 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
 
     final query =
         await FirebaseFirestore.instance
-            .collection('certifications')
-            .where('uuid', isEqualTo: userUuid)
-            .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
-            .where('createdAt', isLessThan: endOfDay)
+            .collection(AppStrings.certificationsCollection)
+            .where(AppStrings.uuidField, isEqualTo: userUuid)
+            .where(AppStrings.createdAtField, isGreaterThanOrEqualTo: startOfDay)
+            .where(AppStrings.createdAtField, isLessThan: endOfDay)
             .get();
 
     return query.docs.length;
@@ -203,7 +204,7 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
     if (_AddCertificationContentState.isUploading) return;
     if (_AddCertificationContentState.contentController.text.trim().isEmpty ||
         _AddCertificationContentState.selectedImageBytes == null) {
-      FToast(message: '모든 필드를 채워주세요.').show(context);
+      FToast(message: AppStrings.fillAllFields).show(context);
       return;
     }
 
@@ -221,8 +222,11 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         await showDialog(
           context: context,
           builder:
-              (context) =>
-                  FDialog.oneButton(title: '업로드 제한', confirmText: '확인', onConfirm: () => Navigator.pop(context)),
+              (context) => FDialog.oneButton(
+                title: AppStrings.uploadLimit2,
+                confirmText: AppStrings.confirm,
+                onConfirm: () => Navigator.pop(context),
+              ),
         );
         return;
       }
@@ -233,7 +237,7 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         setState(() {
           _AddCertificationContentState.isUploading = false;
         });
-        FToast(message: '인증 오류: 사용자 정보가 일치하지 않습니다.').show(context);
+        FToast(message: AppStrings.authError).show(context);
         return;
       }
 
@@ -249,13 +253,13 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
       final bucket = FirebaseStorage.instance.bucket;
       final gsUrl = 'gs://$bucket/$gsPath';
 
-      await FirebaseFirestore.instance.collection('certifications').add({
-        'uuid': widget.user.uuid,
-        'nickname': widget.user.name,
-        'createdAt': now,
-        'type': _AddCertificationContentState.selectedType.displayName,
-        'content': _AddCertificationContentState.contentController.text.trim(),
-        'photoUrl': gsUrl,
+      await FirebaseFirestore.instance.collection(AppStrings.certificationsCollection).add({
+        AppStrings.uuidField: widget.user.uuid,
+        AppStrings.nicknameField: widget.user.name,
+        AppStrings.createdAtField: now,
+        AppStrings.typeField: _AddCertificationContentState.selectedType.displayName,
+        AppStrings.contentField: _AddCertificationContentState.contentController.text.trim(),
+        AppStrings.photoUrlField: gsUrl,
       });
 
       setState(() {
@@ -277,7 +281,7 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: FSolidButton.primary(onPressed: _handleSubmit, text: '제출', size: FSolidButtonSize.medium),
+      child: FSolidButton.primary(onPressed: _handleSubmit, text: AppStrings.submit, size: FSolidButtonSize.medium),
     );
   }
 }

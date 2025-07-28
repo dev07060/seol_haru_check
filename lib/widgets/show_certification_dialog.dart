@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
 
@@ -36,7 +37,7 @@ void showCertificationDialog(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, color: Color(0xFF004DF8), size: 28),
-                      tooltip: '추가 인증',
+                      tooltip: AppStrings.addCertificationTooltip,
                       onPressed: () async {
                         Navigator.pop(context);
                         final result = await showAddCertificationBottomSheet(
@@ -48,10 +49,13 @@ void showCertificationDialog(
                       },
                     ),
 
-                    Text('${user.name}님의 인증 기록', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text(
+                      '${user.name}${AppStrings.certificationRecord}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.grey, size: 28),
-                      tooltip: '닫기',
+                      tooltip: AppStrings.closeTooltip,
                       onPressed: () => context.pop(),
                     ),
                   ],
@@ -70,9 +74,9 @@ void showCertificationDialog(
                     ),
                     items:
                         certifications.map((cert) {
-                          final photoUrl = cert['photoUrl'] ?? '';
-                          final type = cert['type'] ?? '';
-                          final content = cert['content'] ?? '';
+                          final photoUrl = cert[AppStrings.photoUrlField] ?? '';
+                          final type = cert[AppStrings.typeField] ?? '';
+                          final content = cert[AppStrings.contentField] ?? '';
                           final docId = cert['docId'];
 
                           return Builder(
@@ -107,7 +111,7 @@ void showCertificationDialog(
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
                                                   Text(
-                                                    '유형: $type',
+                                                    '${AppStrings.typeLabel}: $type',
                                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                                     maxLines: 1,
                                                     overflow: TextOverflow.ellipsis,
@@ -120,10 +124,12 @@ void showCertificationDialog(
                                                         context: context,
                                                         builder:
                                                             (ctx) => AlertDialog(
-                                                              title: const Text('인증 삭제'),
+                                                              title: const Text(AppStrings.deleteCertification),
                                                               content: TextField(
                                                                 controller: passwordController,
-                                                                decoration: const InputDecoration(labelText: '비밀번호'),
+                                                                decoration: const InputDecoration(
+                                                                  labelText: AppStrings.password,
+                                                                ),
                                                                 obscureText: true,
                                                                 keyboardType: TextInputType.number,
                                                                 maxLength: 6,
@@ -131,7 +137,7 @@ void showCertificationDialog(
                                                               actions: [
                                                                 TextButton(
                                                                   onPressed: () => Navigator.pop(ctx, false),
-                                                                  child: const Text('취소'),
+                                                                  child: const Text(AppStrings.cancel),
                                                                 ),
                                                                 ElevatedButton(
                                                                   style: ElevatedButton.styleFrom(
@@ -145,15 +151,21 @@ void showCertificationDialog(
                                                                     final password = passwordController.text.trim();
                                                                     final snapshot =
                                                                         await FirebaseFirestore.instance
-                                                                            .collection('users')
-                                                                            .where('uuid', isEqualTo: user.uuid)
+                                                                            .collection(AppStrings.usersCollection)
+                                                                            .where(
+                                                                              AppStrings.uuidField,
+                                                                              isEqualTo: user.uuid,
+                                                                            )
                                                                             .limit(1)
                                                                             .get();
                                                                     if (snapshot.docs.isNotEmpty &&
-                                                                        snapshot.docs.first.data()['password'] ==
+                                                                        snapshot.docs.first.data()[AppStrings
+                                                                                .passwordField] ==
                                                                             password) {
                                                                       await FirebaseFirestore.instance
-                                                                          .collection('certifications')
+                                                                          .collection(
+                                                                            AppStrings.certificationsCollection,
+                                                                          )
                                                                           .doc(docId)
                                                                           .delete();
                                                                       Navigator.pop(ctx);
@@ -163,12 +175,12 @@ void showCertificationDialog(
                                                                       Navigator.pop(ctx);
                                                                       ScaffoldMessenger.of(context).showSnackBar(
                                                                         const SnackBar(
-                                                                          content: Text('비밀번호가 일치하지 않습니다'),
+                                                                          content: Text(AppStrings.passwordIncorrect),
                                                                         ),
                                                                       );
                                                                     }
                                                                   },
-                                                                  child: const Text('삭제'),
+                                                                  child: const Text(AppStrings.delete),
                                                                 ),
                                                               ],
                                                             ),

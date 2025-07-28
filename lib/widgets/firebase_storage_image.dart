@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 
 class FirebaseStorageImage extends StatelessWidget {
   final String imagePath;
@@ -41,7 +42,11 @@ class FirebaseStorageImage extends StatelessWidget {
                   SizedBox(height: 8),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('이미지를 불러올 수 없어요', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                    child: Text(
+                      AppStrings.cannotLoadImage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),

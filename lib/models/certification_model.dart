@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/enums/certification_type.dart';
 
 class Certification {
@@ -24,24 +25,24 @@ class Certification {
   factory Certification.fromMap(String docId, Map<String, dynamic> map) {
     return Certification(
       docId: docId,
-      uuid: map['uuid'] ?? '',
-      nickname: map['nickname'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      type: CertificationType.fromDisplayName(map['type'] ?? '운동'),
-      content: map['content'] ?? '',
-      photoUrl: map['photoUrl'] ?? '',
+      uuid: map[AppStrings.uuidField] ?? '',
+      nickname: map[AppStrings.nicknameField] ?? '',
+      createdAt: (map[AppStrings.createdAtField] as Timestamp).toDate(),
+      type: CertificationType.fromDisplayName(map[AppStrings.typeField] ?? AppStrings.exercise),
+      content: map[AppStrings.contentField] ?? '',
+      photoUrl: map[AppStrings.photoUrlField] ?? '',
     );
   }
 
   // Certification 객체를 다시 Map으로 변환 (필요시 사용)
   Map<String, dynamic> toMap() {
     return {
-      'uuid': uuid,
-      'nickname': nickname,
-      'createdAt': createdAt,
-      'type': type.displayName,
-      'content': content,
-      'photoUrl': photoUrl,
+      AppStrings.uuidField: uuid,
+      AppStrings.nicknameField: nickname,
+      AppStrings.createdAtField: createdAt,
+      AppStrings.typeField: type.displayName,
+      AppStrings.contentField: content,
+      AppStrings.photoUrlField: photoUrl,
     };
   }
 }

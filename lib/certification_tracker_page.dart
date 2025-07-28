@@ -170,7 +170,10 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
             (user) => GestureDetector(
               onTap: () {
                 context.push(
-                  AppRouter.router.namedLocation(AppRoutePath.otherUserFeed.name, pathParameters: {'uuid': user.uuid}),
+                  AppRouter.router.namedLocation(
+                    AppRoutePath.otherUserFeed.name,
+                    pathParameters: {AppStrings.uuidField: user.uuid},
+                  ),
                 );
               },
               child: Container(
@@ -232,8 +235,8 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                 child = FutureBuilder<QuerySnapshot>(
                                   future:
                                       FirebaseFirestore.instance
-                                          .collection('certifications')
-                                          .where('uuid', isEqualTo: user.uuid)
+                                          .collection(AppStrings.certificationsCollection)
+                                          .where(AppStrings.uuidField, isEqualTo: user.uuid)
                                           .get(),
                                   builder: (context, snapshot) {
                                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -245,7 +248,7 @@ class _CertificationTrackerPageState extends State<CertificationTrackerPage> wit
                                     final selectedDate = DateFormat('yyyyMMdd').format(date);
                                     final certDocs =
                                         snapshot.data!.docs.where((doc) {
-                                          final createdAt = (doc['createdAt'] as Timestamp).toDate();
+                                          final createdAt = (doc[AppStrings.createdAtField] as Timestamp).toDate();
                                           return DateFormat('yyyyMMdd').format(createdAt) == selectedDate;
                                         }).toList();
                                     return Text(

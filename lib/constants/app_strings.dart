@@ -34,7 +34,7 @@ class AppStrings {
   static const String contentHint = '인증 내용을 입력하세요';
   static const String selectImage = '이미지 선택';
   static const String changeImage = '이미지 변경';
-  static const String passwordHint = '비밀번호(4희자리)';
+  static const String passwordHint = '비밀번호(4자리)';
   static const String submit = '제출';
   static const String fillAllFields = '모든 필드를 채워주세요.';
   static const String certificationAddedSuccessfully = '인증이 성공적으로 추가되었습니다.';
@@ -59,6 +59,43 @@ class AppStrings {
   static const String confirmDataMigrationDescription = '이전 인증 데이터를 현재 계정으로 가져옵니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?';
   static const String dataMigrationSuccessful = '데이터 마이그레이션이 완료되었습니다.';
   static const String dataMigrationFailed = '데이터 마이그레이션 중 오류가 발생했습니다.';
+
+  // 로그인/로그아웃 관련 문자열
+  static const String login = '로그인';
+  static const String logout = '로그아웃';
+  static const String confirmLogout = '정말 로그아웃 하시겠습니까?';
+  static const String logoutSuccess = '로그아웃 되었습니다.';
+  static const String logoutFailed = '로그아웃 실패. 잠시후 다시 시도해주세요';
+  static const String loginFailed = '로그인 실패';
+  static const String signUp = '회원가입(ID 생성시에만)';
+  static const String signUpSuccess = '회원가입에 성공했습니다. 자동으로 로그인됩니다.';
+  static const String signUpFailed = '회원가입에 실패했습니다. 다시 시도해주세요.';
+  static const String nicknameAlreadyInUse = '이미 사용 중인 닉네임입니다.';
+  static const String unknownError = '알 수 없는 오류가 발생했습니다';
+  static const String nicknameHint = '닉네임을 입력해 주세요.';
+  static const String nicknameAndPasswordRequired = '닉네임과 4자리 비밀번호를 모두 올바르게 입력해주세요.';
+
+  // 앱 관련 문자열
+  static const String appTitleKorean = '운동 체크';
+  static const String errorOccurred = '오류가 발생했습니다';
+  static const String confirm = '확인';
+  static const String uploadLimit2 = '업로드 제한';
+  static const String authError = '인증 오류: 사용자 정보가 일치하지 않습니다.';
+  static const String cannotGetUserEmail = '사용자 이메일을 가져올 수 없습니다.';
+  static const String typeLabel = '유형';
+  static const String password = '비밀번호';
+  static const String cannotLoadImage = '이미지를 불러올 수 없어요';
+
+  // Firestore 컬렉션 및 필드 이름
+  static const String usersCollection = 'users';
+  static const String certificationsCollection = 'certifications';
+  static const String nicknameField = 'nickname';
+  static const String uuidField = 'uuid';
+  static const String createdAtField = 'createdAt';
+  static const String typeField = 'type';
+  static const String contentField = 'content';
+  static const String photoUrlField = 'photoUrl';
+  static const String passwordField = 'password';
 
   // 일반 메시지
   static const String loginRequired = '로그인이 필요합니다.';

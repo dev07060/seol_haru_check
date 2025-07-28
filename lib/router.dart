@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart' hide User;
+import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/pages/login_page.dart';
 import 'package:seol_haru_check/pages/my_feed_page.dart';
 import 'package:seol_haru_check/pages/other_user_feed_page.dart';
@@ -21,7 +22,7 @@ enum AppRoutePath {
       case login:
         return '/login';
       case otherUserFeed:
-        return '/user/:uuid/feed';
+        return '/user/:${AppStrings.uuidField}/feed';
       case adminTracker:
         return '/admin/tracker';
     }
@@ -53,10 +54,10 @@ class AppRouter {
         builder: (context, state) => const MyFeedPage(),
       ),
       GoRoute(
-        path: '/user/:uuid/feed',
+        path: AppRoutePath.otherUserFeed.relativePath,
         name: AppRoutePath.otherUserFeed.name,
         builder: (context, state) {
-          final uuid = state.pathParameters['uuid']!;
+          final uuid = state.pathParameters[AppStrings.uuidField]!;
           return OtherUserFeedPage(uuid: uuid);
         },
       ),

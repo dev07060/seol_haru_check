@@ -35,11 +35,11 @@ final feedProvider = StreamProvider.family<List<Certification>, ({DateTime date,
 
   // 특정 사용자의, 특정 날짜 범위의 인증 데이터를 실시간으로 가져오는 쿼리
   final query = firestore
-      .collection('certifications')
-      .where('uuid', isEqualTo: uuidToQuery) // 조회할 사용자의 uid와 일치하는 것만
-      .where('createdAt', isGreaterThanOrEqualTo: startOfDay) // 날짜 범위 필터링
-      .where('createdAt', isLessThan: endOfDay)
-      .orderBy('createdAt', descending: true); // 최신순으로 정렬
+      .collection(AppStrings.certificationsCollection)
+      .where(AppStrings.uuidField, isEqualTo: uuidToQuery) // 조회할 사용자의 uid와 일치하는 것만
+      .where(AppStrings.createdAtField, isGreaterThanOrEqualTo: startOfDay) // 날짜 범위 필터링
+      .where(AppStrings.createdAtField, isLessThan: endOfDay)
+      .orderBy(AppStrings.createdAtField, descending: true); // 최신순으로 정렬
 
   // 쿼리 스냅샷을 스트림으로 반환하고, 데이터를 Certification 리스트로 변환
   return query.snapshots().map((snapshot) {
@@ -71,10 +71,10 @@ final certifiedDatesInMonthProvider = StreamProvider.family<Set<int>, ({int year
   final endOfMonth = DateTime(params.year, params.month + 1, 1);
 
   final query = firestore
-      .collection('certifications')
-      .where('uuid', isEqualTo: uuidToQuery)
-      .where('createdAt', isGreaterThanOrEqualTo: startOfMonth)
-      .where('createdAt', isLessThan: endOfMonth); // endOfMonth는 포함하지 않음
+      .collection(AppStrings.certificationsCollection)
+      .where(AppStrings.uuidField, isEqualTo: uuidToQuery)
+      .where(AppStrings.createdAtField, isGreaterThanOrEqualTo: startOfMonth)
+      .where(AppStrings.createdAtField, isLessThan: endOfMonth); // endOfMonth는 포함하지 않음
 
   return query.snapshots().map((snapshot) {
     if (snapshot.docs.isEmpty) {
@@ -82,7 +82,7 @@ final certifiedDatesInMonthProvider = StreamProvider.family<Set<int>, ({int year
     }
     // 중복 제거 및 날짜(day)만 추출 (UTC 기준으로 변환 후 사용 권장, 여기서는 Local 사용)
     return snapshot.docs.map((doc) {
-      final timestamp = doc.data()['createdAt'] as Timestamp;
+      final timestamp = doc.data()[AppStrings.createdAtField] as Timestamp;
       return timestamp.toDate().toLocal().day;
     }).toSet();
   });
@@ -111,10 +111,10 @@ final hasCertificationForMonthProvider = StreamProvider.family<bool, ({int year,
   final endOfMonth = DateTime(params.year, params.month + 1, 1);
 
   final query = firestore
-      .collection('certifications')
-      .where('uuid', isEqualTo: uuidToQuery)
-      .where('createdAt', isGreaterThanOrEqualTo: startOfMonth)
-      .where('createdAt', isLessThan: endOfMonth)
+      .collection(AppStrings.certificationsCollection)
+      .where(AppStrings.uuidField, isEqualTo: uuidToQuery)
+      .where(AppStrings.createdAtField, isGreaterThanOrEqualTo: startOfMonth)
+      .where(AppStrings.createdAtField, isLessThan: endOfMonth)
       .limit(1); // 하나라도 있는지 확인
 
   return query.snapshots().map((snapshot) => snapshot.docs.isNotEmpty);
@@ -123,9 +123,14 @@ final hasCertificationForMonthProvider = StreamProvider.family<bool, ({int year,
 // 사용자 닉네임을 가져오는 프로바이더
 final userNicknameProvider = FutureProvider.family<String, String>((ref, uuid) async {
   try {
-    final userDoc = await FirebaseFirestore.instance.collection('users').where('uuid', isEqualTo: uuid).limit(1).get();
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection(AppStrings.usersCollection)
+            .where(AppStrings.uuidField, isEqualTo: uuid)
+            .limit(1)
+            .get();
     if (userDoc.docs.isNotEmpty) {
-      return userDoc.docs.first.data()['nickname'] ?? AppStrings.defaultUserName;
+      return userDoc.docs.first.data()[AppStrings.nicknameField] ?? AppStrings.defaultUserName;
     }
     return AppStrings.defaultUserName;
   } catch (e) {
@@ -141,7 +146,7 @@ class CertificationRepository {
   CertificationRepository(this._firestore);
 
   Future<void> deleteCertification(String docId) async {
-    await _firestore.collection('certifications').doc(docId).delete();
+    await _firestore.collection(AppStrings.certificationsCollection).doc(docId).delete();
   }
 
   // 닉네임과 현재 사용자 이메일의 로컬 파트를 비교하여 이전 인증 데이터를 마이그레이션합니다.
@@ -149,10 +154,10 @@ class CertificationRepository {
     // 제공된 userEmailLocalPart와 일치하는 nickname을 가진 인증 데이터 조회
     final querySnapshot =
         await _firestore
-            .collection('certifications')
-            .where('nickname', isEqualTo: userEmailLocalPart)
+            .collection(AppStrings.certificationsCollection)
+            .where(AppStrings.nicknameField, isEqualTo: userEmailLocalPart)
             // 이전 데이터는 현재 newUuid와 다른 uuid를 가지고 있을 것이라는 가정
-            .where('uuid', isNotEqualTo: newUuid)
+            .where(AppStrings.uuidField, isNotEqualTo: newUuid)
             .get();
 
     if (querySnapshot.docs.isEmpty) {
@@ -166,7 +171,7 @@ class CertificationRepository {
       // 현재 사용자의 nickname도 함께 업데이트할 수 있습니다 (선택 사항).
       // 여기서는 uuid만 업데이트합니다.
       // 필요하다면, 현재 사용자의 displayName을 가져와서 nickname도 업데이트할 수 있습니다.
-      batch.update(doc.reference, {'uuid': newUuid});
+      batch.update(doc.reference, {AppStrings.uuidField: newUuid});
     }
 
     await batch.commit();
