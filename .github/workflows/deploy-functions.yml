@@ -1,0 +1,138 @@
+name: Deploy Cloud Functions
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'functions/**'
+      - '.github/workflows/deploy-functions.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd functions
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd functions
+          npm run lint
+
+      - name: Run tests
+        run: |
+          cd functions
+          npm run test:coverage
+
+      - name: Build functions
+        run: |
+          cd functions
+          npm run build
+
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd functions
+          npm ci
+
+      - name: Setup Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
+
+      - name: Deploy to staging
+        run: |
+          cd functions
+          npm run deploy:staging:full
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Test staging deployment
+        run: |
+          cd functions
+          npm run test:deployment
+
+  deploy-production:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd functions
+          npm ci
+
+      - name: Setup Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PRODUCTION }}
+
+      - name: Deploy to production
+        run: |
+          cd functions
+          npm run deploy:production:full
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Test production deployment
+        run: |
+          cd functions
+          npm run test:deployment
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "🎉 Production deployment successful!"
+          echo "Timestamp: $(date)"
+          echo "Commit: ${{ github.sha }}"
