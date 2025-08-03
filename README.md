@@ -177,8 +177,7 @@ seol_haru_check/
 │   ├── keys/             # Firebase 서비스 계정 키
 │   └── svg/              # 추가 SVG 에셋
 ├── functions/            # Firebase Cloud Functions 소스 코드
-├── web/                  # 웹 배포용 파일
-└── .kiro/                # Kiro AI 개발 도구 설정
+└── web/                  # 웹 배포용 파일
 ```
 
 ## 📋 핵심 비즈니스 규칙 (Core Business Rules)
