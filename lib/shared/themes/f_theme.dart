@@ -17,9 +17,28 @@ import 'package:seol_haru_check/shared/themes/f_colors.dart';
 class FTheme {
   static String get defaultFontFamily => 'Pretendard';
 
-  static TextTheme get lightTextTheme => ThemeData.light().textTheme.apply(fontFamily: defaultFontFamily);
+  // 이모지와 한글을 위한 폰트 fallback 리스트
+  static List<String> get fontFamilyFallback => [
+    'Pretendard',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
+    'Roboto',
+    'Helvetica Neue',
+    'Arial',
+    'Noto Sans',
+    'sans-serif',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji',
+  ];
 
-  static TextTheme get darkTextTheme => ThemeData.dark().textTheme.apply(fontFamily: defaultFontFamily);
+  static TextTheme get lightTextTheme =>
+      ThemeData.light().textTheme.apply(fontFamily: defaultFontFamily, fontFamilyFallback: fontFamilyFallback);
+
+  static TextTheme get darkTextTheme =>
+      ThemeData.dark().textTheme.apply(fontFamily: defaultFontFamily, fontFamilyFallback: fontFamilyFallback);
 
   static ThemeData light(context) => ThemeData.light().copyWith(
     textTheme: lightTextTheme,

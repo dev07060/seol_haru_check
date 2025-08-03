@@ -20,7 +20,25 @@ class FTextStyle extends TextStyle {
     List<ui.FontFeature> fontFeatures = const [],
   }) : _fontSize = fontSize,
        _fontWeight = fontWeight,
-       super(height: height ?? lineHeight / fontSize, fontFamily: 'Pretendard', fontFeatures: [...fontFeatures]);
+       super(
+         height: height ?? lineHeight / fontSize,
+         fontFamily: 'Pretendard',
+         fontFamilyFallback: const [
+           '-apple-system',
+           'BlinkMacSystemFont',
+           'Segoe UI',
+           'Roboto',
+           'Helvetica Neue',
+           'Arial',
+           'Noto Sans',
+           'sans-serif',
+           'Apple Color Emoji',
+           'Segoe UI Emoji',
+           'Segoe UI Symbol',
+           'Noto Color Emoji',
+         ],
+         fontFeatures: [...fontFeatures],
+       );
 
   /// [color], [fontWeight] 외의 요소를 사용하려면, 해당 기능을 추가해야 한다.
   @override

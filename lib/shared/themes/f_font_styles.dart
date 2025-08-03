@@ -64,4 +64,9 @@ class FTextStyles {
   static FTextStyle get bodyLReading => FTextStyle(fontWeight: FFontWeight.medium, fontSize: 14.0, lineHeight: 22.0);
   // detail ?
   static FTextStyle get bodyMReading => FTextStyle(fontWeight: FFontWeight.medium, fontSize: 13.0, lineHeight: 22.0);
+
+  // Caption styles
+  static FTextStyle get caption_12 => FTextStyle(fontWeight: FFontWeight.medium, fontSize: 12.0, lineHeight: 16.0);
+
+  static FTextStyle get caption_10 => FTextStyle(fontWeight: FFontWeight.medium, fontSize: 10.0, lineHeight: 14.0);
 }
