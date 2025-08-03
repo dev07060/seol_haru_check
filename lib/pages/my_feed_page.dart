@@ -62,6 +62,11 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
         context,
         actions: [
           IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: AppStrings.weeklyReport,
+            onPressed: () => context.goNamed(AppRoutePath.weeklyReport.name),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed:
                 () => FDialog.twoButton(
@@ -176,17 +181,43 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
           }
 
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  message,
-                  style: FTextStyles.bodyXL.copyWith(color: FColors.of(context).labelAlternative),
-                  textAlign: TextAlign.center,
-                ),
-                const Gap(16),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 40.0), child: actionButton),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: FColors.of(context).solidAssistive,
+                      borderRadius: BorderRadius.circular(40),
+                    ),
+                    child: Icon(
+                      isToday ? Icons.add_photo_alternate_outlined : Icons.calendar_today_outlined,
+                      size: 40,
+                      color: FColors.of(context).labelAlternative,
+                    ),
+                  ),
+                  const Gap(24),
+                  Text(
+                    message,
+                    style: FTextStyles.title3_18.copyWith(
+                      color: FColors.of(context).labelNormal,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(8),
+                  Text(
+                    isToday ? "오늘의 운동이나 식단을 인증해보세요!" : "다른 날짜를 선택해보세요",
+                    style: FTextStyles.bodyM.copyWith(color: FColors.of(context).labelAssistive),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(32),
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 20.0), child: actionButton),
+                ],
+              ),
             ),
           );
         }
@@ -258,16 +289,16 @@ class _MyFeedPageState extends ConsumerState<MyFeedPage> {
                   final fColors = FColors.of(context);
 
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
                       color: FColors.of(context).backgroundNormalN,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: fColors.lineNormal, width: 1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: fColors.lineAlternative, width: 0.5),
                       boxShadow: [
                         BoxShadow(
-                          color: FColors.of(context).labelDisable.withValues(alpha: .12),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
+                          color: FColors.of(context).labelDisable.withValues(alpha: .08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
