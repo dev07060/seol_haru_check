@@ -1,7 +1,8 @@
 {
   "projects": {
     "default": "seol-haru-check",
-    "staging": "seol-haru-check"
+    "staging": "seol-haru-check-staging",
+    "production": "seol-haru-check"
   },
   "targets": {},
   "etags": {},
