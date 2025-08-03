@@ -29,10 +29,207 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!-- Font preloading for better performance -->
+  <link rel="preload" href="assets/assets/fonts/pretendard/Pretendard-Regular.otf" as="font" type="font/otf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/pretendard/Pretendard-Medium.otf" as="font" type="font/otf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/pretendard/Pretendard-Bold.otf" as="font" type="font/otf" crossorigin>
+  
+  <!-- Font display optimization -->
+  <style>
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('assets/assets/fonts/pretendard/Pretendard-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('assets/assets/fonts/pretendard/Pretendard-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('assets/assets/fonts/pretendard/Pretendard-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('assets/assets/fonts/pretendard/Pretendard-Light.otf') format('opentype');
+      font-weight: 300;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      src: url('assets/assets/fonts/pretendard/Pretendard-SemiBold.otf') format('opentype');
+      font-weight: 600;
+      font-display: block;
+    }
+    
+    /* 기본 시스템 폰트 우선 사용 */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+    
+    /* 폰트 로딩 완료 후 Pretendard 적용 */
+    body.fonts-loaded {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+    
+    /* Flutter 앱에 폰트 적용 */
+    body.fonts-loaded * {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji' !important;
+    }
+    
+    /* 텍스트 렌더링 최적화 */
+    body, * {
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* 한글 문자 범위에 대한 특별 처리 */
+    @supports (font-display: block) {
+      .korean-text {
+        font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+      }
+    }
+    
+    /* 폰트 로딩 중 텍스트 숨김 방지 */
+    .flutter-view {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    .flutter-view.fonts-loaded {
+      opacity: 1;
+    }
+    
+    /* Loading state to prevent FOUC */
+    .flutter-loading {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+  </style>
+
   <title>seol_haru_check</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Loading indicator while fonts are loading -->
+  <div id="loading" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    z-index: 9999;
+  ">
+    <div style="text-align: center;">
+      <div style="
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      "></div>
+      <div style="color: #666; font-size: 14px;">로딩 중...</div>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script src="font-loader.js"></script>
   <script src="flutter_bootstrap.js" async></script>
+  
+  <script>
+    // 폰트 로딩 완료 감지 및 강제 로딩
+    function waitForFonts() {
+      return new Promise((resolve) => {
+        const fonts = [
+          new FontFace('Pretendard', 'url(assets/assets/fonts/pretendard/Pretendard-Regular.otf)', { weight: '400' }),
+          new FontFace('Pretendard', 'url(assets/assets/fonts/pretendard/Pretendard-Medium.otf)', { weight: '500' }),
+          new FontFace('Pretendard', 'url(assets/assets/fonts/pretendard/Pretendard-Bold.otf)', { weight: '700' }),
+          new FontFace('Pretendard', 'url(assets/assets/fonts/pretendard/Pretendard-Light.otf)', { weight: '300' }),
+          new FontFace('Pretendard', 'url(assets/assets/fonts/pretendard/Pretendard-SemiBold.otf)', { weight: '600' })
+        ];
+
+        Promise.all(fonts.map(font => {
+          document.fonts.add(font);
+          return font.load();
+        })).then(() => {
+          document.body.classList.add('fonts-loaded');
+          console.log('Pretendard fonts loaded successfully');
+          resolve();
+        }).catch(err => {
+          console.warn('Font loading failed, showing app anyway:', err);
+          document.body.classList.add('fonts-loaded');
+          resolve();
+        });
+
+        // Fallback: resolve after 3 seconds even if fonts aren't loaded
+        setTimeout(() => {
+          document.body.classList.add('fonts-loaded');
+          resolve();
+        }, 3000);
+      });
+    }
+    
+    // 폰트 로딩을 기다린 후 Flutter 앱 시작
+    async function initializeApp() {
+      await waitForFonts();
+      
+      // Flutter 앱이 준비될 때까지 추가 대기
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      
+      console.log('All fonts ready, starting Flutter app');
+    }
+
+    // Hide loading indicator when Flutter app is ready
+    window.addEventListener('flutter-first-frame', function () {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+      
+      // Flutter view 표시
+      const flutterView = document.querySelector('flutter-view');
+      if (flutterView) {
+        flutterView.classList.add('fonts-loaded');
+      }
+    });
+    
+    // 폰트 로딩 시작
+    if (document.fonts && document.fonts.ready) {
+      initializeApp();
+    } else {
+      // FontFace API를 지원하지 않는 브라우저용 fallback
+      setTimeout(() => {
+        document.body.classList.add('fonts-loaded');
+      }, 1000);
+    }
+    
+    // Fallback: hide loading after 5 seconds
+    setTimeout(function() {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    }, 5000);
+  </script>
 </body>
 </html>
