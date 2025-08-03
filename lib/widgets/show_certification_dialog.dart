@@ -120,7 +120,7 @@ void showCertificationDialog(
                                                     icon: const Icon(Icons.delete, color: Colors.red, size: 16),
                                                     onPressed: () async {
                                                       final passwordController = TextEditingController();
-                                                      final confirm = await showDialog<bool>(
+                                                      await showDialog<bool>(
                                                         context: context,
                                                         builder:
                                                             (ctx) => AlertDialog(

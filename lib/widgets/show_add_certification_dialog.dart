@@ -50,15 +50,149 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
   static Uint8List? selectedImageBytes;
   static bool isUploading = false;
 
+  // 세분화된 카테고리 선택 상태
+  static Set<ExerciseCategory> selectedExerciseCategories = {};
+  static Set<DietCategory> selectedDietCategories = {};
+
   @override
   void dispose() {
     contentController.clear();
     passwordController.clear();
     selectedImageBytes = null; // 이미지 선택 초기화
+    selectedExerciseCategories.clear();
+    selectedDietCategories.clear();
     super.dispose();
   }
 
   List<String> get types => CertificationType.displayNames;
+
+  Widget _buildCategorySelection() {
+    if (selectedType == CertificationType.exercise) {
+      return _buildExerciseCategorySelection();
+    } else {
+      return _buildDietCategorySelection();
+    }
+  }
+
+  Widget _buildExerciseCategorySelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '운동 종류를 선택하세요 (다중 선택 가능)',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
+        ),
+        const Gap(8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              ExerciseCategory.all.map((category) {
+                final isSelected = selectedExerciseCategories.contains(category);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        selectedExerciseCategories.remove(category);
+                      } else {
+                        selectedExerciseCategories.add(category);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          isSelected
+                              ? Theme.of(context).primaryColor.withValues(alpha: .1)
+                              : Colors.grey.withValues(alpha: .1),
+                      border: Border.all(
+                        color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: .3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(category.emoji, style: const TextStyle(fontSize: 16)),
+                        const Gap(4),
+                        Text(
+                          category.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDietCategorySelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '식단 종류를 선택하세요 (다중 선택 가능)',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
+        ),
+        const Gap(8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              DietCategory.all.map((category) {
+                final isSelected = selectedDietCategories.contains(category);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        selectedDietCategories.remove(category);
+                      } else {
+                        selectedDietCategories.add(category);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.orange.withValues(alpha: .1) : Colors.grey.withValues(alpha: .1),
+                      border: Border.all(
+                        color: isSelected ? Colors.orange : Colors.grey.withValues(alpha: 0.3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(category.emoji, style: const TextStyle(fontSize: 16)),
+                        const Gap(4),
+                        Text(
+                          category.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected ? Colors.orange : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+        ),
+      ],
+    );
+  }
+
   // 이미지 압축 함수
   Future<Uint8List?> compressImage(Uint8List imageBytes) async {
     try {
@@ -108,10 +242,20 @@ class _AddCertificationContentState extends State<_AddCertificationContent> {
                 tabList: types,
                 size: CapsuleTapSize.small,
                 onChangedTap: (index) {
-                  setState(() => selectedType = CertificationType.values[index]);
+                  setState(() {
+                    selectedType = CertificationType.values[index];
+                    // 타입 변경 시 선택된 카테고리 초기화
+                    selectedExerciseCategories.clear();
+                    selectedDietCategories.clear();
+                  });
                 },
               ),
-              const Gap(8),
+              const Gap(16),
+
+              // 세분화된 카테고리 선택 섹션
+              _buildCategorySelection(),
+
+              const Gap(16),
               FTextField(controller: contentController, hintText: AppStrings.contentHint, maxLines: 3),
 
               const Gap(8),
@@ -208,6 +352,17 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
       return;
     }
 
+    // 카테고리 선택 검증
+    final hasSelectedCategories =
+        _AddCertificationContentState.selectedType == CertificationType.exercise
+            ? _AddCertificationContentState.selectedExerciseCategories.isNotEmpty
+            : _AddCertificationContentState.selectedDietCategories.isNotEmpty;
+
+    if (!hasSelectedCategories) {
+      FToast(message: '카테고리를 하나 이상 선택해주세요').show(context);
+      return;
+    }
+
     setState(() {
       _AddCertificationContentState.isUploading = true;
     });
@@ -253,6 +408,15 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
       final bucket = FirebaseStorage.instance.bucket;
       final gsUrl = 'gs://$bucket/$gsPath';
 
+      // 선택된 카테고리 정보 준비
+      List<String> selectedCategories = [];
+      if (_AddCertificationContentState.selectedType == CertificationType.exercise) {
+        selectedCategories =
+            _AddCertificationContentState.selectedExerciseCategories.map((e) => e.displayName).toList();
+      } else {
+        selectedCategories = _AddCertificationContentState.selectedDietCategories.map((e) => e.displayName).toList();
+      }
+
       await FirebaseFirestore.instance.collection(AppStrings.certificationsCollection).add({
         AppStrings.uuidField: widget.user.uuid,
         AppStrings.nicknameField: widget.user.name,
@@ -260,6 +424,8 @@ class _AddCertificationBottomButtonState extends State<_AddCertificationBottomBu
         AppStrings.typeField: _AddCertificationContentState.selectedType.displayName,
         AppStrings.contentField: _AddCertificationContentState.contentController.text.trim(),
         AppStrings.photoUrlField: gsUrl,
+        'categories': selectedCategories, // 새로운 필드 추가
+        'categoryCount': selectedCategories.length, // 분석용 카운트 필드
       });
 
       setState(() {
