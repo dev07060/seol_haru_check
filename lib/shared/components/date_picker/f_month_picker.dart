@@ -174,7 +174,7 @@ class FMonthPickerState extends ConsumerState<FMonthPicker> {
                 loading: () => _buildMonthCellLoading(context, month), // 로딩 중 UI
                 error: (err, stack) {
                   // 에러 발생 시 로그 및 UI 처리
-                  print('Error loading certification status for month $month/$_currentYear: $err');
+                  debugPrint('Error loading certification status for month $month/$_currentYear: $err');
                   return _buildMonthCellLoading(context, month, isError: true); // 에러 시 로딩과 유사한 UI
                 },
               );
