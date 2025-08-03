@@ -7,13 +7,17 @@ import 'package:seol_haru_check/certification_tracker_page.dart' hide User;
 import 'package:seol_haru_check/constants/app_strings.dart';
 import 'package:seol_haru_check/pages/login_page.dart';
 import 'package:seol_haru_check/pages/my_feed_page.dart';
+import 'package:seol_haru_check/pages/notification_history_page.dart';
 import 'package:seol_haru_check/pages/other_user_feed_page.dart';
+import 'package:seol_haru_check/pages/weekly_report_page.dart';
 
 enum AppRoutePath {
   myFeed,
   login,
   otherUserFeed,
-  adminTracker;
+  adminTracker,
+  weeklyReport,
+  notificationHistory;
 
   String get relativePath {
     switch (this) {
@@ -25,6 +29,10 @@ enum AppRoutePath {
         return '/user/:${AppStrings.uuidField}/feed';
       case adminTracker:
         return '/admin/tracker';
+      case weeklyReport:
+        return '/weekly-report';
+      case notificationHistory:
+        return '/notification-history';
     }
   }
 }
@@ -70,6 +78,16 @@ class AppRouter {
         path: AppRoutePath.adminTracker.relativePath,
         name: AppRoutePath.adminTracker.name,
         builder: (context, state) => const CertificationTrackerPage(),
+      ),
+      GoRoute(
+        path: AppRoutePath.weeklyReport.relativePath,
+        name: AppRoutePath.weeklyReport.name,
+        builder: (context, state) => const WeeklyReportPage(),
+      ),
+      GoRoute(
+        path: AppRoutePath.notificationHistory.relativePath,
+        name: AppRoutePath.notificationHistory.name,
+        builder: (context, state) => const NotificationHistoryPage(),
       ),
     ],
     refreshListenable: GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
