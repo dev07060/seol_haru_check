@@ -30,29 +30,40 @@ dependencies:
   flutter_riverpod: ^2.6.1
   table_calendar: ^3.2.0
   firebase_auth: ^5.6.0
+  firebase_messaging: ^15.1.6
+  flutter_dotenv: ^5.2.1
+  connectivity_plus: ^6.0.5
+  fl_chart: ^0.69.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 
   flutter_lints: ^5.0.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.9
 
 flutter:
   uses-material-design: true
   assets:
-    # - assets/svg/
-    # - assets/
+    - assets/svg/
     - assets/fonts/
     - assets/fonts/pretendard/
-    # - assets/icons/
-    # - assets/icons/player/
-    # - assets/icons/chevrons/
-    # - assets/icons/emoji/
-    # - assets/icons/empty/
-    # - assets/icons/normal/
-    # - assets/icons/sns/
-    # - assets/icons/tab_bar/
-    # - assets/icons/palette/
-    # - assets/images/
+    - assets/env/
+    - assets/keys/
+    - assets/icons/
+    - assets/icons/player/
+    - assets/icons/chevrons/
+    - assets/icons/emoji/
+    - assets/icons/empty/
+    - assets/icons/normal/
+    - assets/icons/sns/
+    - assets/icons/socials/
+    - assets/icons/tab_bar/
+    - assets/icons/tabbar/
+    - assets/icons/palette/
+    - assets/images/
 
   fonts:
     - family: Pretendard
