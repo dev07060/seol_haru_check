@@ -2,16 +2,77 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userUuid) {
+      return isAuthenticated() && request.auth.uid == userUuid;
+    }
+    
+    // Helper function to validate weekly report data structure
+    function isValidWeeklyReport() {
+      return request.resource.data.keys().hasAll(['userUuid', 'weekStartDate', 'weekEndDate', 'generatedAt', 'stats', 'analysis', 'recommendations', 'status']) &&
+             request.resource.data.userUuid is string &&
+             request.resource.data.weekStartDate is timestamp &&
+             request.resource.data.weekEndDate is timestamp &&
+             request.resource.data.generatedAt is timestamp &&
+             request.resource.data.stats is map &&
+             request.resource.data.analysis is map &&
+             request.resource.data.recommendations is list &&
+             request.resource.data.status is string;
+    }
+    
+    // Helper function to validate analysis queue data structure
+    function isValidAnalysisQueue() {
+      return request.resource.data.keys().hasAll(['userUuid', 'weekStartDate', 'weekEndDate', 'status', 'createdAt', 'retryCount']) &&
+             request.resource.data.userUuid is string &&
+             request.resource.data.weekStartDate is timestamp &&
+             request.resource.data.weekEndDate is timestamp &&
+             request.resource.data.status is string &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.retryCount is int;
+    }
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    // Users collection - existing users data
+    match /users/{userId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Certifications collection - existing certifications data
+    match /certifications/{certId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Weekly Reports collection - AI-generated weekly analysis reports
+    match /weeklyReports/{reportId} {
+      // Users can read their own reports
+      allow read: if isAuthenticated() && 
+                     (resource == null || isOwner(resource.data.userUuid));
+      
+      // Only Cloud Functions can create/update reports (no auth.uid for service accounts)
+      allow create: if request.auth == null && isValidWeeklyReport();
+      allow update: if request.auth == null && isValidWeeklyReport();
+      
+      // Users cannot delete reports
+      allow delete: if false;
+    }
+
+    // Analysis Queue collection - background processing queue
+    match /analysisQueue/{queueId} {
+      // Only Cloud Functions can read/write queue items
+      allow read, write: if request.auth == null;
+      
+      // Validate data structure on create/update
+      allow create: if isValidAnalysisQueue();
+      allow update: if isValidAnalysisQueue();
+    }
+
+    // Temporary fallback rule for development (expires June 13, 2025)
+    // Remove this rule in production
     match /{document=**} {
       allow read, write: if request.time < timestamp.date(2025, 6, 13);
     }
