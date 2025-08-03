@@ -27,40 +27,40 @@ samples, guidance on mobile development, and a full API reference.
 
 ```mermaid
 graph TD
-    subgraph "Client (Flutter)"
-        A[UI Layer: Pages & Widgets]
-        B[State Management: Riverpod]
-        C[Routing: GoRouter]
-        D[Service Layer: Data Fetching & Caching]
-        E[Models: Data Structures]
+    subgraph Client["Client (Flutter)"]
+        A[UI Layer]
+        B[State Management]
+        C[Routing]
+        D[Service Layer]
+        E[Models]
         
         A --> B
         B --> D
         D --> E
     end
 
-    subgraph "Backend (Firebase Serverless)"
+    subgraph Backend["Backend (Firebase)"]
         F[Firebase Auth]
         G[Firestore Database]
         H[Cloud Functions]
         I[Cloud Scheduler]
-        J[VertexAI (Gemini)]
+        J[VertexAI Gemini]
         K[FCM]
     end
 
-    A -- User Interaction --> B
-    D -- API Calls --> G
-    D -- API Calls --> H
+    A -->|User Interaction| B
+    D -->|API Calls| G
+    D -->|API Calls| H
 
-    I -- Triggers (Weekly) --> H[AI Report Generation]
-    H -- Fetches Data --> G
-    H -- Sends Prompt --> J
-    J -- Returns Analysis --> H
-    H -- Saves Report --> G
-    H -- Sends Notification --> K
-    K -- Push Notification --> A
+    I -->|Weekly Trigger| H
+    H -->|Fetch Data| G
+    H -->|Send Prompt| J
+    J -->|Return Analysis| H
+    H -->|Save Report| G
+    H -->|Send Notification| K
+    K -->|Push Notification| A
 
-    F -- Manages Auth --> A
+    F -->|Manage Auth| A
 ```
 
 *   **Frontend (Flutter)**:
