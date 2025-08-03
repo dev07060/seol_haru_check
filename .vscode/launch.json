@@ -2,15 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "haru-check",
+            "name": "haru-check-debug",
             "cwd": "${workspaceFolder}",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
-            "args": [
-                "-t",
-                "lib/main.dart"
-            ],
+            "program": "lib/main.dart",
+            "deviceId": "chrome"
+        },
+        {
+            "name": "haru-check-release",
+            "cwd": "${workspaceFolder}",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/main.dart",
             "deviceId": "chrome"
         }
     ]
