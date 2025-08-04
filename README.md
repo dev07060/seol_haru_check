@@ -240,8 +240,14 @@ seol_haru_check/
 
 2.  **환경 변수 설정**:
     ```bash
-    # assets/env/.dev.env 파일 생성 및 필요한 환경 변수 설정
+    # Flutter 앱 환경 변수 설정
     cp assets/env/.dev.env.example assets/env/.dev.env
+    
+    # Cloud Functions 환경 변수 설정
+    cp functions/.env.production.example functions/.env.production
+    cp functions/.env.staging.example functions/.env.staging
+    
+    # 각 파일을 열어서 실제 프로젝트 정보로 수정
     ```
 
 3.  **Flutter 종속성 설치**:

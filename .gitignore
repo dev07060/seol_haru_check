@@ -20,9 +20,37 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
-# hide env assets
+# Environment and sensitive configuration files
 *.env
+*.env.local
+*.env.development
+*.env.production
+*.env.staging
+*.env.test
 /assets/keys/*
+
+# Assets environment files (exclude actual env files, include examples)
+/assets/env/.dev.env
+/assets/env/.prod.env
+/assets/env/.staging.env
+
+# Functions environment files (exclude actual env files, include examples)  
+/functions/.env.production
+/functions/.env.staging
+/functions/.env.development
+/functions/.env.local
+
+# Firebase service account keys
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase-adminsdk-*.json
+**/service-account-*.json
+
+# API keys and secrets
+**/api-keys.json
+**/secrets.json
+**/*-key.json
+**/*-secret.json
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
