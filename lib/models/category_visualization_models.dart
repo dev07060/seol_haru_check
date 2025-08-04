@@ -1037,6 +1037,32 @@ class UnifiedBarData {
     return UnifiedBarData(exerciseCategories: [], dietCategories: []);
   }
 
+  /// Create unified bar data with pre-calculated segments
+  factory UnifiedBarData.withSegments({
+    required List<CategoryVisualizationData> exerciseCategories,
+    required List<CategoryVisualizationData> dietCategories,
+    required List<BarSegmentData> segments,
+  }) {
+    final int totalCount =
+        exerciseCategories.fold<int>(0, (sum, item) => sum + item.count) +
+        dietCategories.fold<int>(0, (sum, item) => sum + item.count);
+
+    return UnifiedBarData._internal(
+      exerciseCategories: exerciseCategories,
+      dietCategories: dietCategories,
+      totalCount: totalCount,
+      segments: segments,
+    );
+  }
+
+  /// Internal constructor for withSegments factory
+  UnifiedBarData._internal({
+    required this.exerciseCategories,
+    required this.dietCategories,
+    required this.totalCount,
+    required this.segments,
+  });
+
   /// Copy with modifications
   UnifiedBarData copyWith({
     List<CategoryVisualizationData>? exerciseCategories,
