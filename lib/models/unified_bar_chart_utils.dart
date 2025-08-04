@@ -71,43 +71,89 @@ class UnifiedBarChartUtils {
   }
 
   /// Adjust segment widths to ensure minimum visibility while maintaining proportions
+  /// Enhanced algorithm for better handling of very small segments
   static List<BarSegmentData> _adjustSegmentWidths(List<BarSegmentData> segments, double minWidth) {
     if (segments.isEmpty) return segments;
 
     final adjustedSegments = <BarSegmentData>[];
-    double totalMinWidthNeeded = 0.0;
-    double totalLargeSegmentWidth = 0.0;
 
-    // Calculate how much space is needed for minimum widths
+    // Separate segments into categories for better handling
+    final verySmallSegments = <BarSegmentData>[];
+    final smallSegments = <BarSegmentData>[];
+    final largeSegments = <BarSegmentData>[];
+
+    double totalVerySmallWidth = 0.0;
+    double totalSmallWidth = 0.0;
+    double totalLargeWidth = 0.0;
+
+    // Categorize segments based on size
     for (final segment in segments) {
-      if (segment.width < minWidth) {
-        totalMinWidthNeeded += minWidth;
+      if (segment.width < minWidth * 0.5) {
+        // Very small segments (less than 2.5% if minWidth is 5%)
+        verySmallSegments.add(segment);
+        totalVerySmallWidth += segment.width;
+      } else if (segment.width < minWidth) {
+        // Small segments (between 2.5% and 5%)
+        smallSegments.add(segment);
+        totalSmallWidth += segment.width;
       } else {
-        totalLargeSegmentWidth += segment.width;
+        // Large segments (5% or more)
+        largeSegments.add(segment);
+        totalLargeWidth += segment.width;
       }
     }
 
-    // If total minimum width exceeds 100%, proportionally reduce all segments
+    // Calculate minimum widths needed
+    final verySmallMinWidth = minWidth * 0.6; // Slightly smaller minimum for very small segments
+    final totalMinWidthNeeded = (verySmallSegments.length * verySmallMinWidth) + (smallSegments.length * minWidth);
+
+    // If total minimum width exceeds 100%, use proportional scaling
     if (totalMinWidthNeeded > 100.0) {
       final scaleFactor = 100.0 / totalMinWidthNeeded;
-      for (final segment in segments) {
+
+      // Scale all segments proportionally
+      for (final segment in verySmallSegments) {
+        adjustedSegments.add(segment.copyWith(width: verySmallMinWidth * scaleFactor));
+      }
+      for (final segment in smallSegments) {
         adjustedSegments.add(segment.copyWith(width: minWidth * scaleFactor));
       }
+      for (final segment in largeSegments) {
+        final proportionalWidth = (segment.width / totalLargeWidth) * (100.0 - totalMinWidthNeeded) * scaleFactor;
+        adjustedSegments.add(segment.copyWith(width: proportionalWidth));
+      }
+
       return adjustedSegments;
     }
 
-    // Calculate available space for large segments after reserving space for small ones
+    // Calculate available space for large segments
     final availableSpaceForLarge = 100.0 - totalMinWidthNeeded;
-    final largeSegmentScaleFactor = totalLargeSegmentWidth > 0 ? availableSpaceForLarge / totalLargeSegmentWidth : 1.0;
+    final largeSegmentScaleFactor = totalLargeWidth > 0 ? availableSpaceForLarge / totalLargeWidth : 1.0;
 
-    // Apply adjustments
-    for (final segment in segments) {
-      if (segment.width < minWidth) {
-        // Small segments get minimum width
-        adjustedSegments.add(segment.copyWith(width: minWidth));
-      } else {
-        // Large segments get scaled width
-        adjustedSegments.add(segment.copyWith(width: segment.width * largeSegmentScaleFactor));
+    // Apply intelligent adjustments
+    for (final segment in verySmallSegments) {
+      // Very small segments get reduced minimum width but remain visible
+      adjustedSegments.add(segment.copyWith(width: verySmallMinWidth));
+    }
+
+    for (final segment in smallSegments) {
+      // Small segments get full minimum width
+      adjustedSegments.add(segment.copyWith(width: minWidth));
+    }
+
+    for (final segment in largeSegments) {
+      // Large segments get scaled width based on available space
+      final scaledWidth = segment.width * largeSegmentScaleFactor;
+      adjustedSegments.add(segment.copyWith(width: scaledWidth));
+    }
+
+    // Ensure total width is exactly 100%
+    final totalAdjustedWidth = adjustedSegments.fold(0.0, (sum, segment) => sum + segment.width);
+    if (totalAdjustedWidth != 100.0 && totalAdjustedWidth > 0) {
+      final correctionFactor = 100.0 / totalAdjustedWidth;
+      for (int i = 0; i < adjustedSegments.length; i++) {
+        final segment = adjustedSegments[i];
+        adjustedSegments[i] = segment.copyWith(width: segment.width * correctionFactor);
       }
     }
 
@@ -145,7 +191,7 @@ class UnifiedBarChartUtils {
     required int categoryCount,
     double baseHeight = 60.0,
     double maxHeight = 100.0,
-    double minHeight = 40.0,
+    double minHeight = 44.0, // Minimum 44pt for accessibility
   }) {
     if (categoryCount == 0) return minHeight;
 

@@ -19,10 +19,19 @@ import 'package:seol_haru_check/widgets/in_app_notification_widget.dart';
 import 'package:seol_haru_check/widgets/loading/loading_state_manager.dart';
 import 'package:seol_haru_check/widgets/report/achievements/weekly_achievements_section.dart';
 import 'package:seol_haru_check/widgets/report/animations/animation_showcase.dart';
+import 'package:seol_haru_check/widgets/report/charts/category_distribution_chart.dart';
+import 'package:seol_haru_check/widgets/report/comparison/category_comparison_card.dart';
+import 'package:seol_haru_check/widgets/report/diet_analysis_section.dart';
 import 'package:seol_haru_check/widgets/report/exercise_analysis_section.dart';
 import 'package:seol_haru_check/widgets/report/historical_reports_section.dart';
 import 'package:seol_haru_check/widgets/report/recommendations_section.dart';
 import 'package:seol_haru_check/widgets/report/report_summary_card.dart';
+import 'package:seol_haru_check/widgets/report/sections/category_insights_section.dart';
+
+// Provider for visualization data service
+final visualizationDataServiceProvider = Provider<VisualizationDataService>((ref) {
+  return VisualizationDataService();
+});
 
 /// Main screen for displaying weekly AI analysis reports
 class WeeklyReportPage extends ConsumerStatefulWidget {
@@ -40,6 +49,11 @@ class _WeeklyReportPageState extends ConsumerState<WeeklyReportPage> with Ticker
   // Visualization data state
   VisualizationData? _visualizationData;
   CategoryTrendData? _categoryTrends;
+
+  // Category navigation and filtering state
+  CategoryType? _selectedCategoryFilter;
+  bool _showCategoryInsights = true;
+  bool _showCategoryComparison = true;
 
   @override
   void initState() {
@@ -301,8 +315,22 @@ class _WeeklyReportPageState extends ConsumerState<WeeklyReportPage> with Ticker
             const SizedBox(height: 16),
           ],
 
-          // Exercise analysis section (hidden in release mode - incomplete)
-          if (kDebugMode) ...[
+          // Category navigation and filtering
+          _buildCategoryNavigationBar(context),
+          const SizedBox(height: 16),
+
+          // Enhanced category visualizations section
+          _buildCategoryVisualizationsSection(context, report),
+          const SizedBox(height: 16),
+
+          // Category comparison section
+          if (_showCategoryComparison && ref.read(weeklyReportProvider).reports.length > 1) ...[
+            _buildCategoryComparisonSection(context, report),
+            const SizedBox(height: 16),
+          ],
+
+          // Exercise analysis section with enhanced category features
+          if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.exercise) ...[
             ExerciseAnalysisSection(
               analysis: report.analysis,
               stats: report.stats,
@@ -313,16 +341,29 @@ class _WeeklyReportPageState extends ConsumerState<WeeklyReportPage> with Ticker
             const SizedBox(height: 16),
           ],
 
-          // Diet analysis section
-          // TODO: This section is unavailable due to insufficient data collection methods.
-          // DietAnalysisSection(
-          //   analysis: report.analysis,
-          //   stats: report.stats,
-          //   categoryTrends: _categoryTrends,
-          //   dietCategoryData: _visualizationData?.dietCategoryData,
-          //   historicalReports: ref.read(weeklyReportProvider).reports,
-          // ),
-          // const SizedBox(height: 16),
+          // Diet analysis section with enhanced category features
+          if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.diet) ...[
+            DietAnalysisSection(
+              analysis: report.analysis,
+              stats: report.stats,
+              categoryTrends: _categoryTrends,
+              dietCategoryData: _visualizationData?.dietCategoryData,
+              historicalReports: ref.read(weeklyReportProvider).reports,
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Category insights section
+          if (_showCategoryInsights && _visualizationData?.hasSufficientData == true) ...[
+            CategoryInsightsSection(
+              exerciseCategories: _visualizationData?.exerciseCategoryData ?? [],
+              dietCategories: _visualizationData?.dietCategoryData ?? [],
+              trendData: _categoryTrends,
+              historicalReports: ref.read(weeklyReportProvider).reports,
+              onInsightTap: () => _showCategoryOnboarding(context),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Recommendations section
           RecommendationsSection(recommendations: report.recommendations),
@@ -466,5 +507,475 @@ class _WeeklyReportPageState extends ConsumerState<WeeklyReportPage> with Ticker
   /// 애니메이션 쇼케이스 표시
   void _showAnimationShowcase() {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AnimationShowcase()));
+  }
+
+  /// Build category navigation bar for filtering
+  Widget _buildCategoryNavigationBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: SPColors.backgroundColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SPColors.gray200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.filter_list, size: 16, color: SPColors.podBlue),
+              const SizedBox(width: 8),
+              Text(
+                '카테고리 필터',
+                style: FTextStyles.body1_16.copyWith(color: SPColors.textColor(context), fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              // Toggle buttons for insights and comparison
+              Row(
+                children: [
+                  _buildToggleButton(
+                    context,
+                    '인사이트',
+                    _showCategoryInsights,
+                    (value) => setState(() => _showCategoryInsights = value),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildToggleButton(
+                    context,
+                    '비교',
+                    _showCategoryComparison,
+                    (value) => setState(() => _showCategoryComparison = value),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Category filter chips
+          Wrap(
+            spacing: 8,
+            children: [
+              _buildCategoryFilterChip(context, null, '전체'),
+              _buildCategoryFilterChip(context, CategoryType.exercise, '운동'),
+              _buildCategoryFilterChip(context, CategoryType.diet, '식단'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build toggle button for navigation options
+  Widget _buildToggleButton(BuildContext context, String label, bool isSelected, ValueChanged<bool> onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!isSelected),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? SPColors.podBlue.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSelected ? SPColors.podBlue : SPColors.gray300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 14,
+              color: isSelected ? SPColors.podBlue : SPColors.gray600,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: FTextStyles.caption_12.copyWith(
+                color: isSelected ? SPColors.podBlue : SPColors.gray600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build category filter chip
+  Widget _buildCategoryFilterChip(BuildContext context, CategoryType? type, String label) {
+    final isSelected = _selectedCategoryFilter == type;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedCategoryFilter = isSelected ? null : type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? SPColors.podGreen : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? SPColors.podGreen : SPColors.gray300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (type != null) ...[
+              Icon(type.icon, size: 14, color: isSelected ? Colors.white : SPColors.gray600),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: FTextStyles.body2_14.copyWith(
+                color: isSelected ? Colors.white : SPColors.gray600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build enhanced category visualizations section
+  Widget _buildCategoryVisualizationsSection(BuildContext context, WeeklyReport report) {
+    if (_visualizationData?.hasSufficientData != true) {
+      return _buildEmptyCategoryVisualizationState(context);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: SPColors.backgroundColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: SPColors.gray200),
+        boxShadow: [
+          BoxShadow(color: SPColors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: SPColors.podBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.analytics, size: 20, color: SPColors.podBlue),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '카테고리 분석',
+                  style: FTextStyles.title3_18.copyWith(
+                    color: SPColors.textColor(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '총 ${_visualizationData!.totalCategoriesCount}개 카테고리',
+                  style: FTextStyles.body2_14.copyWith(color: SPColors.gray600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Category distribution charts
+            if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.exercise) ...[
+              if (_visualizationData!.exerciseCategoryData.isNotEmpty) ...[
+                _buildCategoryDistributionCard(
+                  context,
+                  '운동 카테고리 분포',
+                  _visualizationData!.exerciseCategoryData,
+                  CategoryType.exercise,
+                ),
+                const SizedBox(height: 16),
+              ],
+            ],
+
+            if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.diet) ...[
+              if (_visualizationData!.dietCategoryData.isNotEmpty) ...[
+                _buildCategoryDistributionCard(
+                  context,
+                  '식단 카테고리 분포',
+                  _visualizationData!.dietCategoryData,
+                  CategoryType.diet,
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build category distribution card
+  Widget _buildCategoryDistributionCard(
+    BuildContext context,
+    String title,
+    List<CategoryVisualizationData> categoryData,
+    CategoryType type,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color:
+            type == CategoryType.exercise
+                ? SPColors.podGreen.withValues(alpha: 0.05)
+                : SPColors.podOrange.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              type == CategoryType.exercise
+                  ? SPColors.podGreen.withValues(alpha: 0.1)
+                  : SPColors.podOrange.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(type.icon, size: 16, color: type == CategoryType.exercise ? SPColors.podGreen : SPColors.podOrange),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: FTextStyles.body1_16.copyWith(color: SPColors.textColor(context), fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: CategoryDistributionChart(
+              categoryData: categoryData,
+              type: type,
+              showLegend: true,
+              enableInteraction: true,
+              onCategoryTap: (category) => _showCategoryDetail(context, category),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build empty category visualization state
+  Widget _buildEmptyCategoryVisualizationState(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: SPColors.backgroundColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: SPColors.gray200),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.pie_chart_outline, size: 64, color: SPColors.gray400),
+          const SizedBox(height: 16),
+          Text(
+            '카테고리 분석 준비 중',
+            style: FTextStyles.title3_18.copyWith(color: SPColors.textColor(context), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '더 많은 인증을 추가하면 상세한 카테고리 분석을 볼 수 있어요',
+            style: FTextStyles.body1_16.copyWith(color: SPColors.gray600),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build category comparison section
+  Widget _buildCategoryComparisonSection(BuildContext context, WeeklyReport report) {
+    final historicalReports = ref.read(weeklyReportProvider).reports;
+    final previousReport = historicalReports.isNotEmpty ? historicalReports.first : null;
+
+    if (previousReport == null) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: SPColors.backgroundColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: SPColors.gray200),
+        boxShadow: [
+          BoxShadow(color: SPColors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: SPColors.podOrange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.compare_arrows, size: 20, color: SPColors.podOrange),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '주간 비교',
+                  style: FTextStyles.title3_18.copyWith(
+                    color: SPColors.textColor(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Category comparison cards
+            if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.exercise) ...[
+              CategoryComparisonCard(
+                currentWeek: report,
+                previousWeek: previousReport,
+                categoryType: CategoryType.exercise,
+                onTap: () => _showDetailedComparison(context, CategoryType.exercise),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            if (_selectedCategoryFilter == null || _selectedCategoryFilter == CategoryType.diet) ...[
+              CategoryComparisonCard(
+                currentWeek: report,
+                previousWeek: previousReport,
+                categoryType: CategoryType.diet,
+                onTap: () => _showDetailedComparison(context, CategoryType.diet),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show category detail modal
+  void _showCategoryDetail(BuildContext context, CategoryVisualizationData category) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('${category.emoji} ${category.categoryName}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('이번 주 활동: ${category.count}회'),
+                Text('전체 비율: ${category.formattedPercentage}'),
+                if (category.description != null) ...[const SizedBox(height: 8), Text(category.description!)],
+                if (_categoryTrends != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text('트렌드: '),
+                      Icon(
+                        _categoryTrends!.getTrendForCategory(category.categoryName, category.type)?.icon ??
+                            Icons.trending_flat,
+                        size: 16,
+                        color:
+                            _categoryTrends!.getTrendForCategory(category.categoryName, category.type)?.color ??
+                            SPColors.gray600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _categoryTrends!.getTrendForCategory(category.categoryName, category.type)?.displayName ??
+                            '변화 없음',
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+            actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('확인'))],
+          ),
+    );
+  }
+
+  /// Show detailed comparison modal
+  void _showDetailedComparison(BuildContext context, CategoryType type) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('${type.displayName} 상세 비교'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${type.displayName} 카테고리의 상세한 주간 비교 분석입니다.'),
+                  const SizedBox(height: 16),
+                  // Add detailed comparison content here
+                  Text('구현 예정: 상세 비교 차트 및 분석'),
+                ],
+              ),
+            ),
+            actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('확인'))],
+          ),
+    );
+  }
+
+  /// Show category-focused user onboarding
+  void _showCategoryOnboarding(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('카테고리 기반 건강 관리'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '카테고리별로 활동을 분석하여 더 균형잡힌 건강 관리를 도와드려요!',
+                    style: FTextStyles.body1_16.copyWith(color: SPColors.textColor(context)),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOnboardingItem(context, '💪', '운동 카테고리', '근력, 유산소, 스트레칭 등 다양한 운동을 균형있게 해보세요'),
+                  const SizedBox(height: 12),
+                  _buildOnboardingItem(context, '🍽️', '식단 카테고리', '집밥, 건강식, 외식 등 식단의 다양성을 관리해보세요'),
+                  const SizedBox(height: 12),
+                  _buildOnboardingItem(context, '📈', '트렌드 분석', '주간별 변화를 추적하여 개선점을 찾아보세요'),
+                  const SizedBox(height: 12),
+                  _buildOnboardingItem(context, '🎯', '맞춤 추천', 'AI가 분석한 개인별 맞춤 건강 관리 팁을 받아보세요'),
+                ],
+              ),
+            ),
+            actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('시작하기'))],
+          ),
+    );
+  }
+
+  /// Build onboarding item
+  Widget _buildOnboardingItem(BuildContext context, String emoji, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 20)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: FTextStyles.body1_16.copyWith(color: SPColors.textColor(context), fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(description, style: FTextStyles.body2_14.copyWith(color: SPColors.gray600)),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
