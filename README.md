@@ -1,8 +1,24 @@
-# 설 하루 체크 (Seol Haru Check)
+# 하루 체크 (Seol Haru Check)
 
 > AI와 함께 매일의 건강을 기록하고, 매주 똑똑한 리포트를 받아보세요.
 
-"설 하루 체크"는 사용자의 운동 및 식단 기록을 AI가 분석하여 매주 개인화된 건강 리포트를 제공하는 Flutter 애플리케이션입니다. 단순한 기록을 넘어, 데이터 시각화와 추세 분석을 통해 사용자가 자신의 건강 상태를 직관적으로 이해하고 지속 가능한 건강 습관을 형성하도록 돕습니다.
+"하루 체크"는 사용자의 운동 및 식단 기록을 AI가 분석하여 매주 개인화된 건강 리포트를 제공하는 Flutter 애플리케이션입니다. 단순한 기록을 넘어, 데이터 시각화와 추세 분석을 통해 사용자가 자신의 건강 상태를 직관적으로 이해하고 지속 가능한 건강 습관을 형성하도록 돕습니다.
+
+## 📱 앱 스크린샷 (App Screenshots)
+
+<div align="center">
+
+### 📝 일일 인증 기록
+<img src="images/add_cert_1.png" width="250" alt="인증 추가 화면 1"> <img src="images/add_cert_2.png" width="250" alt="인증 추가 화면 2">
+
+### 📅 인증 기록 조회 및 상세보기
+<img src="images/certs.png" width="250" alt="인증 목록"> <img src="images/cert_detail.png" width="250" alt="인증 상세보기">
+
+### 🤖 AI 주간 리포트
+ <img src="images/report_1.png" width="250" alt="주간 리포트 1"> <img src="images/report_2.png" width="250" alt="주간 리포트 2"> <img src="images/report_4.png" width="250" alt="AI 인사이트"> <img src="images/report_5.png" width="250" alt="AI 인사이트"> 
+
+</div>
+
 ## ✨ 주요 기능 (Key Features)
 
 *   **📱 일일 인증 기록**: 사용자가 운동과 식단 활동을 사진과 함께 기록하고 인증할 수 있습니다.
@@ -16,13 +32,8 @@
 *   **🔔 실시간 업데이트 및 알림**: Firebase를 통해 데이터 변경을 실시간으로 감지하고, 리포트가 생성되면 푸시 알림으로 알려줍니다.
 *   **🔐 간편 인증**: 닉네임과 4자리 비밀번호를 통한 간단한 사용자 인증 시스템
 
-- Lab: Write your first Flutter app
-- Cookbook: Useful Flutter samples
 ## 🏗️ 아키텍처 (Architecture)
 
-For help getting started with Flutter development, view the
-online documentation, which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
 이 프로젝트는 Flutter 프론트엔드와 Firebase 서버리스 백엔드로 구성된 확장 가능하고 유지보수가 용이한 아키텍처를 채택했습니다.
 
 ```mermaid
@@ -206,7 +217,7 @@ seol_haru_check/
 *   **다른 사용자 피드** (`OtherUserFeedPage`): 다른 참가자의 활동 조회
 *   **주간 리포트 페이지** (`WeeklyReportPage`): AI 분석 리포트 및 데이터 시각화
 *   **알림 기록 페이지** (`NotificationHistoryPage`): 푸시 알림 기록 관리
-*   **관리자 추적 페이지** (`CertificationTrackerPage`): 전체 참가자 모니터링
+*   **참여자 인증 페이지** (`CertificationTrackerPage`): 전체 참가자 모니터링
 
 ## 🏁 시작하기 (Getting Started)
 
@@ -311,7 +322,7 @@ flutter doctor
 
 ## 📝 최근 업데이트 (Recent Updates)
 
-### 2025년 1월 업데이트
+### 2025년 8월 업데이트
 *   ✅ **README 문서 정확성 개선**: 현재 코드베이스와 일치하도록 문서 업데이트
 *   ✅ **에셋 활성화**: `pubspec.yaml`에서 주석 처리된 아이콘 및 이미지 에셋 활성화
 *   ✅ **환경 변수 템플릿**: `.dev.env.example` 파일 추가로 개발 환경 설정 가이드 제공
@@ -326,7 +337,4 @@ flutter doctor
 
 ---
 
-**개발팀**: Flutter + Firebase + AI 기반 건강 관리 애플리케이션  
-**라이선스**: Private Project  
-**문의**: 프로젝트 관련 문의사항은 개발팀에 연락해주세요.
-
+**문의**: byeongheeoh51@gmail.c
