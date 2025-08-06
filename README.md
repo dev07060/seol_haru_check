@@ -15,7 +15,9 @@
 <img src="images/certs.png" width="250" alt="인증 목록"> <img src="images/cert_detail.png" width="250" alt="인증 상세보기">
 
 ### 🤖 AI 주간 리포트
- <img src="images/report_1.png" width="250" alt="주간 리포트 1"> <img src="images/report_2.png" width="250" alt="주간 리포트 2"> <img src="images/report_4.png" width="250" alt="AI 인사이트"> <img src="images/report_5.png" width="250" alt="AI 인사이트"> 
+<img src="images/report_1.png" width="250" alt="주간 리포트 1"> <img src="images/report_2.png" width="250" alt="주간 리포트 2"> 
+
+<img src="images/report_4.png" width="250" alt="AI 인사이트"> <img src="images/report_5.png" width="250" alt="AI 인사이트"> 
 
 </div>
 
