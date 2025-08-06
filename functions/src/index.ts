@@ -6,25 +6,43 @@
  */
 
 import type { Request, Response } from "express";
+import * as admin from "firebase-admin";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import type { CloudEvent } from "firebase-functions/v2";
-import type { FirestoreEvent } from "firebase-functions/v2/firestore";
+import type { FirestoreEvent, QueryDocumentSnapshot } from "firebase-functions/v2/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+// Services will be imported inside functions to avoid initialization issues
+import { config } from "dotenv";
+import * as path from "path"; // 'path' 모듈을 import 합니다.
+import { metadataExtractionService } from "./services/metadataExtractionService";
+import type { CertificationDocument } from "./services/metadataTypes";
 import { NotificationService } from "./services/notificationService";
 import { userDataAggregationService } from "./services/userDataAggregationService";
 import { vertexAIPromptService } from "./services/vertexAIPromptService";
 import { vertexAIService } from "./services/vertexAIService";
-
 // Import monitoring functions
 export { processAlerts } from "./monitoring/alerts";
 export { checkAlerts, collectMetrics, healthCheck } from "./monitoring/healthCheck";
+export {
+  cleanupMetadataExtractionMetrics, collectMetadataExtractionMetrics,
+  getMetadataExtractionAnalytics
+} from "./monitoring/metadataExtractionMonitoring";
 
+// Load environment variables based on NODE_ENV or default to local
+const nodeEnv = process.env.NODE_ENV || 'development';
+if (nodeEnv === 'production') {
+  config({ path: path.resolve(__dirname, "../.env.production") });
+} else if (nodeEnv === 'staging') {
+  config({ path: path.resolve(__dirname, "../.env.staging") });
+} else {
+  config({ path: path.resolve(__dirname, "../.env.local") });
+}
 // Initialize Firebase Admin
 initializeApp();
 const db = getFirestore();
@@ -159,7 +177,7 @@ export const weeklyAnalysisTrigger = onSchedule({
                 "식단 관리를 더 신경써보세요. 매일 건강한 식단을 기록해보는 것은 어떨까요?" :
                 `이번 주 ${userData.stats.dietDays}일 식단 관리하셨어요. ` +
                 "더 꾸준히 해보세요!",
-              overallAssessment: `이번 주에는 ` +
+              overallAssessment: "이번 주에는 " +
                 `${userData.stats.totalCertifications}번의 ` +
                 "인증을 하셨네요. 더 꾸준히 인증해보세요!",
               strengthAreas: ["시작하는 의지"],
@@ -876,6 +894,224 @@ export const processAnalysisQueue = onDocumentCreated({
 });
 
 /**
+ * Process Metadata Extraction Cloud Function
+ *
+ * Triggered when a new certification document is created in Firestore.
+ * Extracts metadata from certification images using AI analysis.
+ */
+export const processMetadataExtraction = onDocumentCreated(
+  {
+    document: "certifications/{certificationId}",
+    region: "asia-northeast3",
+    memory: "512MiB",
+    timeoutSeconds: 60,
+    secrets: ["GEMINI_API_KEY"],
+  },
+  // 1. 핸들러 함수의 시그니처를 올바른 타입으로 수정합니다.
+  // FirestoreEvent<CertificationDocument> 대신 FirestoreEvent<QueryDocumentSnapshot | undefined, { ... }>를 사용해야 합니다.
+  async (event: FirestoreEvent<QueryDocumentSnapshot | undefined, { certificationId: string }>): Promise<void> => {
+    const { certificationId } = event.params;
+
+    // 2. event.data가 undefined일 수 있으므로, 먼저 snapshot 변수에 할당하고 존재 여부를 확인합니다.
+    const snapshot = event.data;
+    if (!snapshot) {
+      logger.error("No data associated with the event.", { certificationId });
+      return;
+    }
+
+    // 3. snapshot에서 데이터를 가져온 후, 직접 정의한 타입으로 캐스팅합니다.
+    // 이 시점에서 데이터가 없을 경우도 처리합니다.
+    const certificationData = snapshot.data() as CertificationDocument; // CertificationDocument는 직접 정의한 타입이어야 합니다.
+    if (!certificationData) {
+      logger.error("No certification data found", { certificationId });
+      return;
+    }
+
+    logger.info("Processing metadata extraction for certification", {
+      certificationId,
+      userUuid: certificationData.userUuid,
+      type: certificationData.type,
+      photoUrl: certificationData.photoUrl,
+      timestamp: new Date().toISOString(),
+    });
+
+    try {
+      // --- 기존 로직은 대부분 그대로 사용 가능합니다 ---
+      let metadata: any;
+
+      if (certificationData.type === "운동") {
+        metadata = await metadataExtractionService.extractExerciseMetadata(
+          certificationData.photoUrl,
+          certificationId
+        );
+      } else if (certificationData.type === "식단") {
+        metadata = await metadataExtractionService.extractDietMetadata(
+          certificationData.photoUrl,
+          certificationId
+        );
+      } else {
+        logger.warn("Unknown certification type", {
+          certificationId,
+          type: certificationData.type,
+        });
+        return;
+      }
+
+      const metadataField = certificationData.type === "운동" ? "exerciseMetadata" : "dietMetadata";
+
+      // 4. 문서를 업데이트할 때, 'snapshot.ref'를 사용하면 더 안전합니다.
+      await snapshot.ref.update({
+        [metadataField]: metadata,
+        metadataExtractedAt: new Date(),
+        metadataExtractionStatus: "completed",
+      });
+
+      logger.info("Metadata extraction completed successfully", {
+        certificationId,
+        type: certificationData.type,
+        metadataField,
+        hasValidMetadata: metadata && Object.keys(metadata).length > 0,
+      });
+
+    } catch (error) {
+      logger.error("Failed to extract metadata", {
+        certificationId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      // 4. 오류 발생 시에도 'snapshot.ref'를 사용합니다.
+      await snapshot.ref.update({
+        metadataExtractionStatus: "failed",
+        metadataExtractionError: error instanceof Error ? error.message : String(error),
+        metadataExtractedAt: new Date(),
+      });
+    }
+  }
+);
+
+/**
+ * Retry Metadata Extraction Cloud Function
+ *
+ * HTTP function to manually retry failed metadata extractions.
+ * Can be called by admin interface or scheduled jobs.
+ */
+export const retryMetadataExtraction = onRequest({
+  region: "asia-northeast3",
+  memory: "512MiB",
+  timeoutSeconds: 60,
+}, async (request: Request, response: Response): Promise<void> => {
+  logger.info("Retry metadata extraction function triggered", {
+    method: request.method,
+    body: request.body,
+  });
+
+  try {
+    const { certificationId, forceRetry = false } = request.body;
+
+    if (!certificationId) {
+      response.status(400).json({
+        success: false,
+        error: "Missing required parameter: certificationId",
+      });
+      return;
+    }
+
+    // Get the certification document
+    const certificationRef = db.collection("certifications").doc(certificationId);
+    const certificationDoc = await certificationRef.get();
+
+    if (!certificationDoc.exists) {
+      response.status(404).json({
+        success: false,
+        error: "Certification not found",
+      });
+      return;
+    }
+
+    const certificationData = certificationDoc.data() as CertificationDocument;
+
+    // Check if retry is allowed
+    if (!forceRetry && certificationData.metadataError && !certificationData.metadataError.canRetry) {
+      response.status(400).json({
+        success: false,
+        error: "Metadata extraction cannot be retried for this certification",
+        metadataError: certificationData.metadataError,
+      });
+      return;
+    }
+
+    logger.info("Retrying metadata extraction", {
+      certificationId,
+      type: certificationData.type,
+      previousError: certificationData.metadataError,
+      forceRetry,
+    });
+
+    // Reset processing status
+    await certificationRef.update({
+      metadataProcessed: false,
+      metadataProcessingStartedAt: new Date(),
+      metadataError: admin.firestore.FieldValue.delete(),
+    });
+
+    // Determine certification type and extract metadata
+    let extractedMetadata: any = null;
+    let metadataField: string;
+
+    if (certificationData.type === "운동") {
+      metadataField = "exerciseMetadata";
+      extractedMetadata = await metadataExtractionService.extractExerciseMetadata(
+        certificationData.photoUrl
+      );
+    } else if (certificationData.type === "식단") {
+      metadataField = "dietMetadata";
+      extractedMetadata = await metadataExtractionService.extractDietMetadata(
+        certificationData.photoUrl
+      );
+    } else {
+      throw new Error(`Unknown certification type: ${certificationData.type}`);
+    }
+
+    // Update the certification document
+    const updateData: any = {
+      [metadataField]: extractedMetadata,
+      metadataProcessed: true,
+      metadataProcessingCompletedAt: new Date(),
+    };
+
+    await certificationRef.update(updateData);
+
+    logger.info("Metadata extraction retry completed successfully", {
+      certificationId,
+      type: certificationData.type,
+      metadataField,
+    });
+
+    response.status(200).json({
+      success: true,
+      certificationId,
+      type: certificationData.type,
+      extractedMetadata,
+      message: "Metadata extraction retry completed successfully",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Retry metadata extraction failed", {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      body: request.body,
+    });
+
+    response.status(500).json({
+      success: false,
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
  * Generate basic exercise insights
  * @param {any[]} exerciseCertifications - Exercise certifications
  * @param {any} stats - Statistics object
@@ -1226,11 +1462,11 @@ export const batchGenerateAIReports = onRequest({
       // Add delay between batches to respect rate limits
       if (i + batchSize < targetUsers.length && delayBetweenBatches > 0) {
         logger.info(`Waiting ${delayBetweenBatches}ms before next batch`);
-        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+        await new Promise((resolve) => setTimeout(resolve, delayBetweenBatches));
       }
 
       // Log progress
-      logger.info(`Batch completed`, {
+      logger.info("Batch completed", {
         batchNumber: Math.floor(i / batchSize) + 1,
         processedUsers: results.processedUsers,
         successfulReports: results.successfulReports,
@@ -1501,8 +1737,8 @@ export const testVertexAI = onRequest({
         results.rateLimitingTest = {
           concurrentRequests: concurrentCount,
           results: concurrentResults,
-          successCount: concurrentResults.filter(r => r.success).length,
-          failureCount: concurrentResults.filter(r => !r.success).length,
+          successCount: concurrentResults.filter((r) => r.success).length,
+          failureCount: concurrentResults.filter((r) => !r.success).length,
           averageDuration: concurrentResults.reduce((sum, r) => sum + r.duration, 0) / concurrentResults.length,
         };
         break;
@@ -1623,7 +1859,7 @@ export const sendReportNotification = onDocumentCreated({
 
   try {
     // Only send notifications for completed reports
-    if (reportData.status !== 'completed') {
+    if (reportData.status !== "completed") {
       logger.info("Report not completed, skipping notification", {
         reportId,
         status: reportData.status,
@@ -1652,7 +1888,7 @@ export const sendReportNotification = onDocumentCreated({
       reportId,
       weekStartDate: startDate,
       weekEndDate: endDate,
-      reportType: reportType || 'ai_analysis',
+      reportType: reportType || "ai_analysis",
       nickname,
     };
 
@@ -1665,7 +1901,7 @@ export const sendReportNotification = onDocumentCreated({
       reportId,
       userUuid,
       notificationId,
-      reportType: reportType || 'ai_analysis',
+      reportType: reportType || "ai_analysis",
     });
   } catch (error) {
     logger.error("Failed to send report notification", {
@@ -1698,10 +1934,10 @@ export const sendManualNotification = onRequest({
 
   try {
     // Validate request method
-    if (request.method !== 'POST') {
+    if (request.method !== "POST") {
       response.status(405).json({
         success: false,
-        error: 'Method not allowed. Use POST.',
+        error: "Method not allowed. Use POST.",
       });
       return;
     }
@@ -1712,7 +1948,7 @@ export const sendManualNotification = onRequest({
       userUuid,
       weekStartDate,
       weekEndDate,
-      reportType = 'ai_analysis',
+      reportType = "ai_analysis",
       nickname,
     } = request.body;
 
@@ -1720,7 +1956,7 @@ export const sendManualNotification = onRequest({
     if (!reportId || !userUuid || !weekStartDate || !weekEndDate) {
       response.status(400).json({
         success: false,
-        error: 'Missing required parameters: reportId, userUuid, weekStartDate, weekEndDate',
+        error: "Missing required parameters: reportId, userUuid, weekStartDate, weekEndDate",
       });
       return;
     }
@@ -1754,7 +1990,7 @@ export const sendManualNotification = onRequest({
     response.status(200).json({
       success: true,
       notificationId,
-      message: 'Notification sent successfully',
+      message: "Notification sent successfully",
     });
   } catch (error) {
     logger.error("Manual notification failed", {

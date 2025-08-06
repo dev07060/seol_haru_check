@@ -7,6 +7,7 @@
  */
 
 import * as logger from "firebase-functions/logger";
+import {DietMetadata, ExerciseMetadata} from "./metadataTypes";
 
 /**
  * Interface for user week data used in prompts
@@ -61,25 +62,25 @@ interface AIAnalysisResult {
  * VertexAI Prompt Engineering Service Class
  */
 export class VertexAIPromptService {
-    private static readonly MAX_PROMPT_LENGTH = 8000;
-    private static readonly ANALYSIS_TEMPERATURE = 0.7;
-    private static readonly MAX_OUTPUT_TOKENS = 2048;
+  private static readonly MAX_PROMPT_LENGTH = 8000;
+  private static readonly ANALYSIS_TEMPERATURE = 0.7;
+  private static readonly MAX_OUTPUT_TOKENS = 2048;
 
-    /**
+  /**
      * Generate comprehensive analysis prompt for users with sufficient data
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Formatted prompt for VertexAI
      */
-    generateAnalysisPrompt(userData: UserWeekData): string {
-        if (!userData.hasMinimumData) {
-            return this.generateInsufficientDataPrompt(userData);
-        }
+  generateAnalysisPrompt(userData: UserWeekData): string {
+    if (!userData.hasMinimumData) {
+      return this.generateInsufficientDataPrompt(userData);
+    }
 
-        const exerciseData = this.formatExerciseData(userData);
-        const dietData = this.formatDietData(userData);
-        const statsData = this.formatStatsData(userData.stats);
+    const exerciseData = this.formatExerciseData(userData);
+    const dietData = this.formatDietData(userData);
+    const statsData = this.formatStatsData(userData.stats);
 
-        const prompt = `당신은 건강 관리 전문가이자 개인 트레이너입니다. 사용자의 일주일간 운동과 식단 인증 데이터를 분석하여 개인화된 피드백을 제공해주세요.
+    const prompt = `당신은 건강 관리 전문가이자 개인 트레이너입니다. 사용자의 일주일간 운동과 식단 인증 데이터를 분석하여 개인화된 피드백을 제공해주세요.
 
 **분석 대상 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
 **사용자**: ${userData.nickname}
@@ -126,19 +127,19 @@ ${dietData}
 - 구체적이고 실행 가능한 조언을 제공해주세요
 - 개인의 노력을 인정하고 긍정적인 변화를 강조해주세요`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Generate exercise-focused analysis prompt
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Exercise analysis prompt
      */
-    generateExerciseAnalysisPrompt(userData: UserWeekData): string {
-        const exerciseData = this.formatExerciseData(userData);
-        const exerciseStats = this.formatExerciseStats(userData.stats);
+  generateExerciseAnalysisPrompt(userData: UserWeekData): string {
+    const exerciseData = this.formatExerciseData(userData);
+    const exerciseStats = this.formatExerciseStats(userData.stats);
 
-        const prompt = `당신은 운동 전문가입니다. 사용자의 일주일간 운동 인증 데이터를 분석하여 전문적인 피드백을 제공해주세요.
+    const prompt = `당신은 운동 전문가입니다. 사용자의 일주일간 운동 인증 데이터를 분석하여 전문적인 피드백을 제공해주세요.
 
 **분석 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
 **사용자**: ${userData.nickname}
@@ -168,19 +169,19 @@ ${exerciseData}
 
 격려적이고 전문적인 톤으로 작성하되, 한국인의 운동 문화와 환경을 고려해주세요.`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Generate diet-focused analysis prompt with nutritional insights
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Diet analysis prompt
      */
-    generateDietAnalysisPrompt(userData: UserWeekData): string {
-        const dietData = this.formatDietData(userData);
-        const dietStats = this.formatDietStats(userData.stats);
+  generateDietAnalysisPrompt(userData: UserWeekData): string {
+    const dietData = this.formatDietData(userData);
+    const dietStats = this.formatDietStats(userData.stats);
 
-        const prompt = `당신은 영양 전문가입니다. 사용자의 일주일간 식단 인증 데이터를 분석하여 영양학적 관점에서 피드백을 제공해주세요.
+    const prompt = `당신은 영양 전문가입니다. 사용자의 일주일간 식단 인증 데이터를 분석하여 영양학적 관점에서 피드백을 제공해주세요.
 
 **분석 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
 **사용자**: ${userData.nickname}
@@ -215,18 +216,18 @@ ${dietData}
 
 한국인의 식문화와 생활 패턴을 고려하여 실용적이고 따라하기 쉬운 조언을 제공해주세요.`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Generate recommendation-focused prompt
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Recommendation prompt
      */
-    generateRecommendationPrompt(userData: UserWeekData): string {
-        const summaryData = this.formatSummaryData(userData);
+  generateRecommendationPrompt(userData: UserWeekData): string {
+    const summaryData = this.formatSummaryData(userData);
 
-        const prompt = `당신은 개인 건강 코치입니다. 사용자의 일주일간 활동 데이터를 바탕으로 다음 주를 위한 구체적이고 실행 가능한 추천사항을 제공해주세요.
+    const prompt = `당신은 개인 건강 코치입니다. 사용자의 일주일간 활동 데이터를 바탕으로 다음 주를 위한 구체적이고 실행 가능한 추천사항을 제공해주세요.
 
 **사용자**: ${userData.nickname}
 **분석 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
@@ -261,18 +262,18 @@ ${summaryData}
 
 한국인의 생활 환경과 문화를 고려하여 실용적인 조언을 제공해주세요.`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Generate fallback prompt for insufficient data scenarios
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Fallback prompt
      */
-    generateInsufficientDataPrompt(userData: UserWeekData): string {
-        const availableData = this.formatLimitedData(userData);
+  generateInsufficientDataPrompt(userData: UserWeekData): string {
+    const availableData = this.formatLimitedData(userData);
 
-        const prompt = `당신은 친근한 건강 관리 코치입니다. 사용자가 이번 주에 충분한 인증을 하지 못했지만, 격려와 동기부여를 통해 다음 주부터 꾸준히 활동할 수 있도록 도와주세요.
+    const prompt = `당신은 친근한 건강 관리 코치입니다. 사용자가 이번 주에 충분한 인증을 하지 못했지만, 격려와 동기부여를 통해 다음 주부터 꾸준히 활동할 수 있도록 도와주세요.
 
 **사용자**: ${userData.nickname}
 **분석 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
@@ -311,16 +312,16 @@ ${availableData}
 
 한국인의 정서와 문화를 고려하여 진심이 담긴 격려 메시지를 작성해주세요.`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Generate motivational prompt for users with no data
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Motivational prompt
      */
-    generateNoDataMotivationalPrompt(userData: UserWeekData): string {
-        const prompt = `당신은 따뜻하고 친근한 건강 관리 멘토입니다. 이번 주에 활동 인증을 하지 못한 사용자에게 부담스럽지 않으면서도 동기부여가 되는 메시지를 전달해주세요.
+  generateNoDataMotivationalPrompt(userData: UserWeekData): string {
+    const prompt = `당신은 따뜻하고 친근한 건강 관리 멘토입니다. 이번 주에 활동 인증을 하지 못한 사용자에게 부담스럽지 않으면서도 동기부여가 되는 메시지를 전달해주세요.
 
 **사용자**: ${userData.nickname}
 **분석 기간**: ${this.formatDateRange(userData.weekStartDate, userData.weekEndDate)}
@@ -362,257 +363,461 @@ ${availableData}
 
 한국인의 정서에 맞는 따뜻하고 진심어린 격려 메시지를 작성해주세요.`;
 
-        return this.validateAndTruncatePrompt(prompt);
-    }
+    return this.validateAndTruncatePrompt(prompt);
+  }
 
-    /**
+  /**
      * Format exercise data for prompt inclusion
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Formatted exercise data
      */
-    private formatExerciseData(userData: UserWeekData): string {
-        const exerciseCerts = userData.certifications.filter(
-            (cert) => cert.type === "운동"
-        );
+  private formatExerciseData(userData: UserWeekData): string {
+    const exerciseCerts = userData.certifications.filter(
+      (cert) => cert.type === "운동"
+    );
 
-        if (exerciseCerts.length === 0) {
-            return "이번 주 운동 인증이 없습니다.";
-        }
-
-        const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-        let formatted = `총 ${exerciseCerts.length}개의 운동 인증:\n`;
-
-        exerciseCerts.forEach((cert, index) => {
-            const dayName = dayNames[cert.dayOfWeek];
-            const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
-            formatted += `${index + 1}. [${dateStr}] ${cert.sanitizedContent}\n`;
-        });
-
-        return formatted;
+    if (exerciseCerts.length === 0) {
+      return "이번 주 운동 인증이 없습니다.";
     }
 
-    /**
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    let formatted = `총 ${exerciseCerts.length}개의 운동 인증:\n`;
+
+    exerciseCerts.forEach((cert, index) => {
+      const dayName = dayNames[cert.dayOfWeek];
+      const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
+      formatted += `${index + 1}. [${dateStr}] ${cert.sanitizedContent}\n`;
+    });
+
+    return formatted;
+  }
+
+  /**
      * Format diet data for prompt inclusion
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Formatted diet data
      */
-    private formatDietData(userData: UserWeekData): string {
-        const dietCerts = userData.certifications.filter(
-            (cert) => cert.type === "식단"
-        );
+  private formatDietData(userData: UserWeekData): string {
+    const dietCerts = userData.certifications.filter(
+      (cert) => cert.type === "식단"
+    );
 
-        if (dietCerts.length === 0) {
-            return "이번 주 식단 인증이 없습니다.";
-        }
-
-        const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-        let formatted = `총 ${dietCerts.length}개의 식단 인증:\n`;
-
-        dietCerts.forEach((cert, index) => {
-            const dayName = dayNames[cert.dayOfWeek];
-            const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
-            formatted += `${index + 1}. [${dateStr}] ${cert.sanitizedContent}\n`;
-        });
-
-        return formatted;
+    if (dietCerts.length === 0) {
+      return "이번 주 식단 인증이 없습니다.";
     }
 
-    /**
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    let formatted = `총 ${dietCerts.length}개의 식단 인증:\n`;
+
+    dietCerts.forEach((cert, index) => {
+      const dayName = dayNames[cert.dayOfWeek];
+      const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
+      formatted += `${index + 1}. [${dateStr}] ${cert.sanitizedContent}\n`;
+    });
+
+    return formatted;
+  }
+
+  /**
      * Format weekly statistics for prompt inclusion
      * @param {WeeklyStats} stats - Weekly statistics
      * @return {string} Formatted statistics
      */
-    private formatStatsData(stats: WeeklyStats): string {
-        let formatted = `- 총 인증 수: ${stats.totalCertifications}개\n`;
-        formatted += `- 운동 인증 일수: ${stats.exerciseDays}일\n`;
-        formatted += `- 식단 인증 일수: ${stats.dietDays}일\n`;
-        formatted += `- 일관성 점수: ${stats.consistencyScore}%\n`;
+  private formatStatsData(stats: WeeklyStats): string {
+    let formatted = `- 총 인증 수: ${stats.totalCertifications}개\n`;
+    formatted += `- 운동 인증 일수: ${stats.exerciseDays}일\n`;
+    formatted += `- 식단 인증 일수: ${stats.dietDays}일\n`;
+    formatted += `- 일관성 점수: ${stats.consistencyScore}%\n`;
 
-        if (Object.keys(stats.exerciseTypes).length > 0) {
-            formatted += "- 운동 종류별 분포:\n";
-            Object.entries(stats.exerciseTypes).forEach(([type, count]) => {
-                formatted += `  * ${type}: ${count}회\n`;
-            });
-        }
-
-        formatted += "- 일별 활동 현황:\n";
-        Object.entries(stats.dailyBreakdown).forEach(([day, counts]) => {
-            formatted += `  * ${day}: 운동 ${counts.exercise}회, 식단 ${counts.diet}회\n`;
-        });
-
-        return formatted;
+    if (Object.keys(stats.exerciseTypes).length > 0) {
+      formatted += "- 운동 종류별 분포:\n";
+      Object.entries(stats.exerciseTypes).forEach(([type, count]) => {
+        formatted += `  * ${type}: ${count}회\n`;
+      });
     }
 
-    /**
+    formatted += "- 일별 활동 현황:\n";
+    Object.entries(stats.dailyBreakdown).forEach(([day, counts]) => {
+      formatted += `  * ${day}: 운동 ${counts.exercise}회, 식단 ${counts.diet}회\n`;
+    });
+
+    return formatted;
+  }
+
+  /**
      * Format exercise-specific statistics
      * @param {WeeklyStats} stats - Weekly statistics
      * @return {string} Formatted exercise statistics
      */
-    private formatExerciseStats(stats: WeeklyStats): string {
-        const exerciseCerts = Object.values(stats.exerciseTypes).reduce((a, b) => a + b, 0);
-        let formatted = `- 총 운동 인증: ${exerciseCerts}개\n`;
-        formatted += `- 운동 실시 일수: ${stats.exerciseDays}일\n`;
+  private formatExerciseStats(stats: WeeklyStats): string {
+    const exerciseCerts = Object.values(stats.exerciseTypes).reduce((a, b) => a + b, 0);
+    let formatted = `- 총 운동 인증: ${exerciseCerts}개\n`;
+    formatted += `- 운동 실시 일수: ${stats.exerciseDays}일\n`;
 
-        if (Object.keys(stats.exerciseTypes).length > 0) {
-            formatted += "- 운동 종류별 분포:\n";
-            Object.entries(stats.exerciseTypes).forEach(([type, count]) => {
-                formatted += `  * ${type}: ${count}회\n`;
-            });
-        }
-
-        return formatted;
+    if (Object.keys(stats.exerciseTypes).length > 0) {
+      formatted += "- 운동 종류별 분포:\n";
+      Object.entries(stats.exerciseTypes).forEach(([type, count]) => {
+        formatted += `  * ${type}: ${count}회\n`;
+      });
     }
 
-    /**
+    return formatted;
+  }
+
+  /**
      * Format diet-specific statistics
      * @param {WeeklyStats} stats - Weekly statistics
      * @return {string} Formatted diet statistics
      */
-    private formatDietStats(stats: WeeklyStats): string {
-        const dietCerts = stats.totalCertifications - Object.values(stats.exerciseTypes).reduce((a, b) => a + b, 0);
-        let formatted = `- 총 식단 인증: ${dietCerts}개\n`;
-        formatted += `- 식단 인증 일수: ${stats.dietDays}일\n`;
+  private formatDietStats(stats: WeeklyStats): string {
+    const dietCerts = stats.totalCertifications - Object.values(stats.exerciseTypes).reduce((a, b) => a + b, 0);
+    let formatted = `- 총 식단 인증: ${dietCerts}개\n`;
+    formatted += `- 식단 인증 일수: ${stats.dietDays}일\n`;
 
-        return formatted;
-    }
+    return formatted;
+  }
 
-    /**
+  /**
      * Format summary data for recommendations
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Formatted summary data
      */
-    private formatSummaryData(userData: UserWeekData): string {
-        let formatted = `- 총 활동: ${userData.stats.totalCertifications}개 인증\n`;
-        formatted += `- 운동: ${userData.stats.exerciseDays}일, 식단: ${userData.stats.dietDays}일\n`;
-        formatted += `- 일관성: ${userData.stats.consistencyScore}%\n`;
+  private formatSummaryData(userData: UserWeekData): string {
+    let formatted = `- 총 활동: ${userData.stats.totalCertifications}개 인증\n`;
+    formatted += `- 운동: ${userData.stats.exerciseDays}일, 식단: ${userData.stats.dietDays}일\n`;
+    formatted += `- 일관성: ${userData.stats.consistencyScore}%\n`;
 
-        if (Object.keys(userData.stats.exerciseTypes).length > 0) {
-            const topExercise = Object.entries(userData.stats.exerciseTypes)
-                .sort(([, a], [, b]) => b - a)[0];
-            formatted += `- 주요 운동: ${topExercise[0]} (${topExercise[1]}회)\n`;
-        }
-
-        return formatted;
+    if (Object.keys(userData.stats.exerciseTypes).length > 0) {
+      const topExercise = Object.entries(userData.stats.exerciseTypes)
+        .sort(([, a], [, b]) => b - a)[0];
+      formatted += `- 주요 운동: ${topExercise[0]} (${topExercise[1]}회)\n`;
     }
 
-    /**
+    return formatted;
+  }
+
+  /**
      * Format limited data for insufficient data scenarios
      * @param {UserWeekData} userData - User's weekly data
      * @return {string} Formatted limited data
      */
-    private formatLimitedData(userData: UserWeekData): string {
-        if (userData.certifications.length === 0) {
-            return "이번 주에는 인증 활동이 없었습니다.";
-        }
-
-        let formatted = `총 ${userData.certifications.length}개의 인증 (최소 3개 필요):\n`;
-
-        userData.certifications.forEach((cert, index) => {
-            const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-            const dayName = dayNames[cert.dayOfWeek];
-            const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
-            formatted += `${index + 1}. [${dateStr}] ${cert.type}: ${cert.sanitizedContent}\n`;
-        });
-
-        return formatted;
+  private formatLimitedData(userData: UserWeekData): string {
+    if (userData.certifications.length === 0) {
+      return "이번 주에는 인증 활동이 없었습니다.";
     }
 
-    /**
+    let formatted = `총 ${userData.certifications.length}개의 인증 (최소 3개 필요):\n`;
+
+    userData.certifications.forEach((cert, index) => {
+      const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+      const dayName = dayNames[cert.dayOfWeek];
+      const dateStr = `${cert.createdAt.getMonth() + 1}/${cert.createdAt.getDate()}(${dayName})`;
+      formatted += `${index + 1}. [${dateStr}] ${cert.type}: ${cert.sanitizedContent}\n`;
+    });
+
+    return formatted;
+  }
+
+  /**
      * Format date range for display
      * @param {Date} startDate - Week start date
      * @param {Date} endDate - Week end date
      * @return {string} Formatted date range
      */
-    private formatDateRange(startDate: Date, endDate: Date): string {
-        const formatDate = (date: Date) => {
-            return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-        };
+  private formatDateRange(startDate: Date, endDate: Date): string {
+    const formatDate = (date: Date) => {
+      return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+    };
 
-        return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
-    }
+    return `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+  }
 
-    /**
+  /**
      * Validate and truncate prompt if necessary
      * @param {string} prompt - Original prompt
      * @return {string} Validated and potentially truncated prompt
      */
-    private validateAndTruncatePrompt(prompt: string): string {
-        if (prompt.length <= VertexAIPromptService.MAX_PROMPT_LENGTH) {
-            return prompt;
-        }
-
-        logger.warn("Prompt exceeds maximum length, truncating", {
-            originalLength: prompt.length,
-            maxLength: VertexAIPromptService.MAX_PROMPT_LENGTH,
-        });
-
-        // Truncate while trying to preserve the structure
-        const truncated = prompt.substring(0, VertexAIPromptService.MAX_PROMPT_LENGTH - 100);
-        return truncated + "\n\n[데이터가 길어 일부 생략되었습니다. 위 정보를 바탕으로 분석해주세요.]";
+  private validateAndTruncatePrompt(prompt: string): string {
+    if (prompt.length <= VertexAIPromptService.MAX_PROMPT_LENGTH) {
+      return prompt;
     }
 
-    /**
+    logger.warn("Prompt exceeds maximum length, truncating", {
+      originalLength: prompt.length,
+      maxLength: VertexAIPromptService.MAX_PROMPT_LENGTH,
+    });
+
+    // Truncate while trying to preserve the structure
+    const truncated = prompt.substring(0, VertexAIPromptService.MAX_PROMPT_LENGTH - 100);
+    return truncated + "\n\n[데이터가 길어 일부 생략되었습니다. 위 정보를 바탕으로 분석해주세요.]";
+  }
+
+  /**
      * Get generation configuration for VertexAI
      * @return {object} Generation configuration
      */
-    getGenerationConfig(): object {
-        return {
-            temperature: VertexAIPromptService.ANALYSIS_TEMPERATURE,
-            maxOutputTokens: VertexAIPromptService.MAX_OUTPUT_TOKENS,
-            topP: 0.8,
-            topK: 40,
-        };
+  getGenerationConfig(): object {
+    return {
+      temperature: VertexAIPromptService.ANALYSIS_TEMPERATURE,
+      maxOutputTokens: VertexAIPromptService.MAX_OUTPUT_TOKENS,
+      topP: 0.8,
+      topK: 40,
+    };
+  }
+
+  /**
+     * Generate ultra-short Korean prompt for exercise image analysis
+     * Optimized for minimal token usage and cost efficiency
+     * @param {string} imageData - Base64 encoded image data
+     * @return {string} Cost-optimized exercise analysis prompt
+     */
+  generateExerciseImageAnalysisPrompt(imageData: string): string {
+    return `운동 이미지 분석. JSON만 응답:
+{"exerciseType":"운동종류","duration":분,"timePeriod":"오전/오후/저녁","intensity":"낮음/보통/높음"}
+불명확시 null. 설명 없이 JSON만.`;
+  }
+
+  /**
+     * Generate ultra-short Korean prompt for diet image analysis
+     * Optimized for minimal token usage and cost efficiency
+     * @param {string} imageData - Base64 encoded image data
+     * @return {string} Cost-optimized diet analysis prompt
+     */
+  generateDietImageAnalysisPrompt(imageData: string): string {
+    return `음식 이미지를 분석하여 JSON 형식으로 응답하세요.
+
+응답 형식 (JSON만):
+{"foodName":"음식 이름","mainIngredients":["재료1","재료2","재료3","재료4","재료5"],"estimatedCalories":칼로리숫자}
+
+주의사항:
+- 음식과 재료의 이름은 가능한 정확히 선택
+- 설명 없이 JSON만 출력`;
+  }
+
+  /**
+     * Parse AI response for exercise metadata with minimal error handling
+     * @param {string} aiResponse - Raw AI response containing JSON
+     * @return {ExerciseMetadata} Parsed exercise metadata
+     */
+  parseExerciseMetadata(aiResponse: string): ExerciseMetadata {
+    try {
+      // Extract JSON from response (handle cases where AI adds extra text)
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in AI response");
+      }
+
+      const jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+
+      // Validate and normalize the response
+      const metadata: ExerciseMetadata = {
+        exerciseType: this.normalizeString(parsed.exerciseType),
+        duration: this.normalizeNumber(parsed.duration),
+        timePeriod: this.normalizeTimePeriod(parsed.timePeriod),
+        intensity: this.normalizeIntensity(parsed.intensity),
+        extractedAt: new Date(),
+      };
+
+      logger.info("Exercise metadata parsed successfully", {
+        exerciseType: metadata.exerciseType,
+        duration: metadata.duration,
+        timePeriod: metadata.timePeriod,
+        intensity: metadata.intensity,
+      });
+
+      return metadata;
+    } catch (error) {
+      logger.error("Failed to parse exercise metadata", {
+        error: error instanceof Error ? error.message : String(error),
+        aiResponse: aiResponse.substring(0, 200),
+      });
+
+      // Return fallback metadata
+      return {
+        exerciseType: null,
+        duration: null,
+        timePeriod: null,
+        intensity: null,
+        extractedAt: new Date(),
+      };
+    }
+  }
+
+  /**
+     * Parse AI response for diet metadata with minimal error handling
+     * @param {string} aiResponse - Raw AI response containing JSON
+     * @return {DietMetadata} Parsed diet metadata
+     */
+  parseDietMetadata(aiResponse: string): DietMetadata {
+    try {
+      // Extract JSON from response (handle cases where AI adds extra text)
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in AI response");
+      }
+
+      const jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+
+      // Validate and normalize the response
+      const metadata: DietMetadata = {
+        foodName: this.normalizeString(parsed.foodName),
+        mainIngredients: this.normalizeIngredientsLimited(parsed.mainIngredients),
+        estimatedCalories: this.normalizeNumber(parsed.estimatedCalories),
+        extractedAt: new Date(),
+      };
+
+      logger.info("Diet metadata parsed successfully", {
+        foodName: metadata.foodName,
+        mainIngredients: metadata.mainIngredients,
+        estimatedCalories: metadata.estimatedCalories,
+      });
+
+      return metadata;
+    } catch (error) {
+      logger.error("Failed to parse diet metadata", {
+        error: error instanceof Error ? error.message : String(error),
+        aiResponse: aiResponse.substring(0, 200),
+      });
+
+      // Return fallback metadata
+      return {
+        foodName: null,
+        mainIngredients: [],
+        estimatedCalories: null,
+        extractedAt: new Date(),
+      };
+    }
+  }
+
+  /**
+     * Normalize string values from AI response
+     * @param {any} value - Value to normalize
+     * @return {string | null} Normalized string or null
+     */
+  private normalizeString(value: any): string | null {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    if (typeof value === "string") {
+      return value.trim();
+    }
+    return String(value).trim() || null;
+  }
+
+  /**
+     * Normalize number values from AI response
+     * @param {any} value - Value to normalize
+     * @return {number | null} Normalized number or null
+     */
+  private normalizeNumber(value: any): number | null {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+  }
+
+  /**
+     * Normalize time period values to expected format
+     * @param {any} value - Value to normalize
+     * @return {string | null} Normalized time period or null
+     */
+  private normalizeTimePeriod(value: any): string | null {
+    const normalized = this.normalizeString(value);
+    if (!normalized) return null;
+
+    const lower = normalized.toLowerCase();
+    if (lower.includes("오전") || lower.includes("morning")) return "오전";
+    if (lower.includes("오후") || lower.includes("afternoon")) return "오후";
+    if (lower.includes("저녁") || lower.includes("evening") || lower.includes("night")) return "저녁";
+
+    return normalized; // Return as-is if no match
+  }
+
+  /**
+     * Normalize intensity values to expected format
+     * @param {any} value - Value to normalize
+     * @return {string | null} Normalized intensity or null
+     */
+  private normalizeIntensity(value: any): string | null {
+    const normalized = this.normalizeString(value);
+    if (!normalized) return null;
+
+    const lower = normalized.toLowerCase();
+    if (lower.includes("낮음") || lower.includes("low") || lower.includes("light")) return "낮음";
+    if (lower.includes("보통") || lower.includes("medium") || lower.includes("moderate")) return "보통";
+    if (lower.includes("높음") || lower.includes("high") || lower.includes("intense")) return "높음";
+
+    return normalized; // Return as-is if no match
+  }
+
+  /**
+     * Normalize ingredients array from AI response (limited to 2 items for simplified diet metadata)
+     * @param {any} value - Value to normalize
+     * @return {string[]} Normalized ingredients array (max 2 items)
+     */
+  private normalizeIngredientsLimited(value: any): string[] {
+    if (!Array.isArray(value)) {
+      return [];
     }
 
-    /**
+    return value
+      .map((item) => this.normalizeString(item))
+      .filter((item) => item !== null)
+      .slice(0, 2) as string[]; // Limit to 2 ingredients for simplified metadata
+  }
+
+  /**
      * Parse AI response into structured analysis result
      * @param {string} aiResponse - Raw AI response
      * @return {AIAnalysisResult} Parsed analysis result
      */
-    parseAnalysisResponse(aiResponse: string): AIAnalysisResult {
-        try {
-            // Extract sections using regex patterns
-            const exerciseMatch = aiResponse.match(/## 운동 분석\s*([\s\S]*?)(?=##|$)/);
-            const dietMatch = aiResponse.match(/## 식단 분석\s*([\s\S]*?)(?=##|$)/);
-            const overallMatch = aiResponse.match(/## 종합 평가\s*([\s\S]*?)(?=##|$)/);
-            const strengthMatch = aiResponse.match(/## 잘하고 있는 점\s*([\s\S]*?)(?=##|$)/);
-            const improvementMatch = aiResponse.match(/## 개선이 필요한 점\s*([\s\S]*?)(?=##|$)/);
-            const recommendationMatch = aiResponse.match(/## 맞춤형 추천사항\s*([\s\S]*?)(?=##|$)/);
+  parseAnalysisResponse(aiResponse: string): AIAnalysisResult {
+    try {
+      // Extract sections using regex patterns
+      const exerciseMatch = aiResponse.match(/## 운동 분석\s*([\s\S]*?)(?=##|$)/);
+      const dietMatch = aiResponse.match(/## 식단 분석\s*([\s\S]*?)(?=##|$)/);
+      const overallMatch = aiResponse.match(/## 종합 평가\s*([\s\S]*?)(?=##|$)/);
+      const strengthMatch = aiResponse.match(/## 잘하고 있는 점\s*([\s\S]*?)(?=##|$)/);
+      const improvementMatch = aiResponse.match(/## 개선이 필요한 점\s*([\s\S]*?)(?=##|$)/);
+      const recommendationMatch = aiResponse.match(/## 맞춤형 추천사항\s*([\s\S]*?)(?=##|$)/);
 
-            // Parse list items from sections
-            const parseListItems = (text: string): string[] => {
-                if (!text) return [];
-                return text.split('\n')
-                    .filter(line => line.trim().startsWith('-') || line.trim().match(/^\d+\./))
-                    .map(line => line.replace(/^[-\d.]\s*/, '').trim())
-                    .filter(item => item.length > 0);
-            };
+      // Parse list items from sections
+      const parseListItems = (text: string): string[] => {
+        if (!text) return [];
+        return text.split("\n")
+          .filter((line) => line.trim().startsWith("-") || line.trim().match(/^\d+\./))
+          .map((line) => line.replace(/^[-\d.]\s*/, "").trim())
+          .filter((item) => item.length > 0);
+      };
 
-            return {
-                exerciseInsights: exerciseMatch ? exerciseMatch[1].trim() : "운동 분석 정보가 없습니다.",
-                dietInsights: dietMatch ? dietMatch[1].trim() : "식단 분석 정보가 없습니다.",
-                overallAssessment: overallMatch ? overallMatch[1].trim() : "종합 평가 정보가 없습니다.",
-                strengthAreas: parseListItems(strengthMatch ? strengthMatch[1] : ""),
-                improvementAreas: parseListItems(improvementMatch ? improvementMatch[1] : ""),
-                recommendations: parseListItems(recommendationMatch ? recommendationMatch[1] : ""),
-            };
-        } catch (error) {
-            logger.error("Failed to parse AI analysis response", {
-                error: error instanceof Error ? error.message : String(error),
-                responseLength: aiResponse.length,
-            });
+      return {
+        exerciseInsights: exerciseMatch ? exerciseMatch[1].trim() : "운동 분석 정보가 없습니다.",
+        dietInsights: dietMatch ? dietMatch[1].trim() : "식단 분석 정보가 없습니다.",
+        overallAssessment: overallMatch ? overallMatch[1].trim() : "종합 평가 정보가 없습니다.",
+        strengthAreas: parseListItems(strengthMatch ? strengthMatch[1] : ""),
+        improvementAreas: parseListItems(improvementMatch ? improvementMatch[1] : ""),
+        recommendations: parseListItems(recommendationMatch ? recommendationMatch[1] : ""),
+      };
+    } catch (error) {
+      logger.error("Failed to parse AI analysis response", {
+        error: error instanceof Error ? error.message : String(error),
+        responseLength: aiResponse.length,
+      });
 
-            // Return fallback structure
-            return {
-                exerciseInsights: "분석 결과를 처리하는 중 오류가 발생했습니다.",
-                dietInsights: "분석 결과를 처리하는 중 오류가 발생했습니다.",
-                overallAssessment: "이번 주도 건강 관리를 위해 노력해주셔서 감사합니다.",
-                strengthAreas: ["꾸준한 건강 관리 의지"],
-                improvementAreas: ["규칙적인 활동 패턴 형성"],
-                recommendations: ["다음 주에도 꾸준히 활동해보세요"],
-            };
-        }
+      // Return fallback structure
+      return {
+        exerciseInsights: "분석 결과를 처리하는 중 오류가 발생했습니다.",
+        dietInsights: "분석 결과를 처리하는 중 오류가 발생했습니다.",
+        overallAssessment: "이번 주도 건강 관리를 위해 노력해주셔서 감사합니다.",
+        strengthAreas: ["꾸준한 건강 관리 의지"],
+        improvementAreas: ["규칙적인 활동 패턴 형성"],
+        recommendations: ["다음 주에도 꾸준히 활동해보세요"],
+      };
     }
+  }
 }
 
 // Export singleton instance

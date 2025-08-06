@@ -1,0 +1,146 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Seol Haru Check
+// Includes rules for AI metadata extraction feature
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userUuid) {
+      return isAuthenticated() && request.auth.uid == userUuid;
+    }
+    
+    // Helper function to validate image file types
+    function isValidImageType() {
+      return resource.contentType != null && 
+             (resource.contentType.matches('image/jpeg') ||
+              resource.contentType.matches('image/png') ||
+              resource.contentType.matches('image/webp') ||
+              resource.contentType.matches('image/heic'));
+    }
+    
+    // Helper function to check file size (max 10MB for images)
+    function isValidImageSize() {
+      return resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Certification images - main storage path (current app pattern)
+    match /certifications/{imageId} {
+      // Users can upload certification images (filename contains userUuid)
+      allow create: if isAuthenticated() &&
+                       request.resource.contentType != null &&
+                       (request.resource.contentType.matches('image/jpeg') ||
+                        request.resource.contentType.matches('image/png') ||
+                        request.resource.contentType.matches('image/webp') ||
+                        request.resource.contentType.matches('image/heic')) &&
+                       request.resource.size < 10 * 1024 * 1024;
+      
+      // Users can read certification images, and Cloud Functions can read for metadata extraction
+      allow read: if isAuthenticated() || request.auth == null; // Allow authenticated users and Cloud Functions
+      
+      // Users can update certification images
+      allow update: if isAuthenticated() &&
+                       isValidImageType() &&
+                       isValidImageSize();
+      
+      // Users can delete certification images
+      allow delete: if isAuthenticated();
+    }
+    
+    // Future certification images path (user-specific folders)
+    match /certifications/{userUuid}/{imageId} {
+      // Users can upload their own certification images
+      allow create: if isAuthenticated() && 
+                       isOwner(userUuid) &&
+                       request.resource.contentType != null &&
+                       (request.resource.contentType.matches('image/jpeg') ||
+                        request.resource.contentType.matches('image/png') ||
+                        request.resource.contentType.matches('image/webp') ||
+                        request.resource.contentType.matches('image/heic')) &&
+                       request.resource.size < 10 * 1024 * 1024;
+      
+      // Users can read their own images, and Cloud Functions can read for metadata extraction
+      allow read: if isAuthenticated() && isOwner(userUuid) ||
+                     request.auth == null; // Allow Cloud Functions (no auth context)
+      
+      // Users can update their own images
+      allow update: if isAuthenticated() && 
+                       isOwner(userUuid) &&
+                       isValidImageType() &&
+                       isValidImageSize();
+      
+      // Users can delete their own images
+      allow delete: if isAuthenticated() && isOwner(userUuid);
+    }
+    
+    // Legacy certification images path (for backward compatibility)
+    match /certification_images/{imageId} {
+      // Allow read access for authenticated users and Cloud Functions
+      allow read: if isAuthenticated() || request.auth == null;
+      
+      // Allow create/update for authenticated users only
+      allow create, update: if isAuthenticated() &&
+                               request.resource.contentType != null &&
+                               (request.resource.contentType.matches('image/jpeg') ||
+                                request.resource.contentType.matches('image/png') ||
+                                request.resource.contentType.matches('image/webp') ||
+                                request.resource.contentType.matches('image/heic')) &&
+                               request.resource.size < 10 * 1024 * 1024;
+      
+      // Allow delete for authenticated users
+      allow delete: if isAuthenticated();
+    }
+    
+    // Processed images for metadata extraction (temporary storage)
+    match /metadata_processing/{imageId} {
+      // Only Cloud Functions can create/read/delete processed images
+      allow read, write, delete: if request.auth == null;
+    }
+    
+    // User profile images
+    match /profile_images/{userUuid}/{imageId} {
+      // Users can manage their own profile images
+      allow read, write, delete: if isAuthenticated() && isOwner(userUuid);
+      
+      // Allow read access for all authenticated users (for viewing profiles)
+      allow read: if isAuthenticated();
+    }
+    
+    // Temporary uploads (for processing before moving to final location)
+    match /temp_uploads/{userUuid}/{imageId} {
+      // Users can upload to their temp folder
+      allow create: if isAuthenticated() && 
+                       isOwner(userUuid) &&
+                       request.resource.contentType != null &&
+                       (request.resource.contentType.matches('image/jpeg') ||
+                        request.resource.contentType.matches('image/png') ||
+                        request.resource.contentType.matches('image/webp') ||
+                        request.resource.contentType.matches('image/heic')) &&
+                       request.resource.size < 10 * 1024 * 1024;
+      
+      // Users can read their own temp files, Cloud Functions can read for processing
+      allow read: if isAuthenticated() && isOwner(userUuid) ||
+                     request.auth == null;
+      
+      // Users and Cloud Functions can delete temp files
+      allow delete: if isAuthenticated() && isOwner(userUuid) ||
+                       request.auth == null;
+    }
+    
+    // System files and backups (admin only)
+    match /system/{allPaths=**} {
+      // Only Cloud Functions can access system files
+      allow read, write, delete: if request.auth == null;
+    }
+    
+    // Default deny rule for any other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

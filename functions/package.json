@@ -20,7 +20,13 @@
     "postdeploy": "echo 'Deployment completed successfully'",
     "deploy:staging:full": "node scripts/deploy.js staging",
     "deploy:production:full": "node scripts/deploy.js production",
-    "test:deployment": "node scripts/test-deployment.js"
+    "test:deployment": "node scripts/test-deployment.js",
+    "deploy:metadata-extraction:staging": "node scripts/deploy-metadata-extraction.js staging",
+    "deploy:metadata-extraction:production": "node scripts/deploy-metadata-extraction.js production",
+    "setup:monitoring:staging": "node scripts/setup-monitoring.js staging",
+    "setup:monitoring:production": "node scripts/setup-monitoring.js production",
+    "test:metadata-extraction:staging": "node scripts/test-metadata-extraction.js staging",
+    "test:metadata-extraction:production": "node scripts/test-metadata-extraction.js production"
   },
   "engines": {
     "node": "22"
@@ -28,11 +34,14 @@
   "main": "lib/index.js",
   "dependencies": {
     "@google-cloud/vertexai": "^1.7.0",
+    "dotenv": "^17.2.1",
     "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1"
+    "firebase-functions": "^6.0.1",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/sharp": "^0.32.0",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
     "eslint": "^8.9.0",

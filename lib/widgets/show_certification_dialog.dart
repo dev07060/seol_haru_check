@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:seol_haru_check/certification_tracker_page.dart';
 import 'package:seol_haru_check/constants/app_strings.dart';
+import 'package:seol_haru_check/models/certification_model.dart';
+import 'package:seol_haru_check/widgets/certification_metadata_widget.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/show_add_certification_dialog.dart';
 
@@ -73,12 +75,14 @@ void showCertificationDialog(
                       scrollDirection: Axis.horizontal,
                     ),
                     items:
-                        certifications.map((cert) {
-                          final photoUrl = cert[AppStrings.photoUrlField] ?? '';
-                          final type = cert[AppStrings.typeField] ?? '';
-                          final content = cert[AppStrings.contentField] ?? '';
-                          final docId = cert['docId'];
+                        certifications.map((certData) {
+                          final photoUrl = certData[AppStrings.photoUrlField] ?? '';
+                          final type = certData[AppStrings.typeField] ?? '';
+                          final content = certData[AppStrings.contentField] ?? '';
+                          final docId = certData['docId'];
 
+                          // Convert map data to Certification object for metadata display
+                          final cert = Certification.fromMap(docId, certData);
                           return Builder(
                             builder: (BuildContext context) {
                               return Container(
@@ -95,7 +99,7 @@ void showCertificationDialog(
                                       ClipRRect(
                                         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                                         child: SizedBox(
-                                          height: 180,
+                                          height: 160,
                                           width: double.infinity,
                                           child: FirebaseStorageImage(imagePath: photoUrl),
                                         ),
@@ -106,96 +110,98 @@ void showCertificationDialog(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            if (type.isNotEmpty)
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    '${AppStrings.typeLabel}: $type',
-                                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  IconButton(
-                                                    icon: const Icon(Icons.delete, color: Colors.red, size: 16),
-                                                    onPressed: () async {
-                                                      final passwordController = TextEditingController();
-                                                      await showDialog<bool>(
-                                                        context: context,
-                                                        builder:
-                                                            (ctx) => AlertDialog(
-                                                              title: const Text(AppStrings.deleteCertification),
-                                                              content: TextField(
-                                                                controller: passwordController,
-                                                                decoration: const InputDecoration(
-                                                                  labelText: AppStrings.password,
-                                                                ),
-                                                                obscureText: true,
-                                                                keyboardType: TextInputType.number,
-                                                                maxLength: 6,
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(
+                                                  '${AppStrings.typeLabel}: $type',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                                                  onPressed: () async {
+                                                    final passwordController = TextEditingController();
+                                                    await showDialog<bool>(
+                                                      context: context,
+                                                      builder:
+                                                          (ctx) => AlertDialog(
+                                                            title: const Text(AppStrings.deleteCertification),
+                                                            content: TextField(
+                                                              controller: passwordController,
+                                                              decoration: const InputDecoration(
+                                                                labelText: AppStrings.password,
                                                               ),
-                                                              actions: [
-                                                                TextButton(
-                                                                  onPressed: () => Navigator.pop(ctx, false),
-                                                                  child: const Text(AppStrings.cancel),
-                                                                ),
-                                                                ElevatedButton(
-                                                                  style: ElevatedButton.styleFrom(
-                                                                    backgroundColor: const Color(0xFF004DF8),
-                                                                    foregroundColor: Colors.white,
-                                                                    shape: RoundedRectangleBorder(
-                                                                      borderRadius: BorderRadius.circular(8),
-                                                                    ),
-                                                                  ),
-                                                                  onPressed: () async {
-                                                                    final password = passwordController.text.trim();
-                                                                    final snapshot =
-                                                                        await FirebaseFirestore.instance
-                                                                            .collection(AppStrings.usersCollection)
-                                                                            .where(
-                                                                              AppStrings.uuidField,
-                                                                              isEqualTo: user.uuid,
-                                                                            )
-                                                                            .limit(1)
-                                                                            .get();
-                                                                    if (snapshot.docs.isNotEmpty &&
-                                                                        snapshot.docs.first.data()[AppStrings
-                                                                                .passwordField] ==
-                                                                            password) {
-                                                                      await FirebaseFirestore.instance
-                                                                          .collection(
-                                                                            AppStrings.certificationsCollection,
-                                                                          )
-                                                                          .doc(docId)
-                                                                          .delete();
-                                                                      Navigator.pop(ctx);
-                                                                      Navigator.pop(context);
-                                                                      onDeleted?.call();
-                                                                    } else {
-                                                                      Navigator.pop(ctx);
-                                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                                        const SnackBar(
-                                                                          content: Text(AppStrings.passwordIncorrect),
-                                                                        ),
-                                                                      );
-                                                                    }
-                                                                  },
-                                                                  child: const Text(AppStrings.delete),
-                                                                ),
-                                                              ],
+                                                              obscureText: true,
+                                                              keyboardType: TextInputType.number,
+                                                              maxLength: 6,
                                                             ),
-                                                      );
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () => Navigator.pop(ctx, false),
+                                                                child: const Text(AppStrings.cancel),
+                                                              ),
+                                                              ElevatedButton(
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: const Color(0xFF004DF8),
+                                                                  foregroundColor: Colors.white,
+                                                                  shape: RoundedRectangleBorder(
+                                                                    borderRadius: BorderRadius.circular(8),
+                                                                  ),
+                                                                ),
+                                                                onPressed: () async {
+                                                                  final password = passwordController.text.trim();
+                                                                  final snapshot =
+                                                                      await FirebaseFirestore.instance
+                                                                          .collection(AppStrings.usersCollection)
+                                                                          .where(
+                                                                            AppStrings.uuidField,
+                                                                            isEqualTo: user.uuid,
+                                                                          )
+                                                                          .limit(1)
+                                                                          .get();
+                                                                  if (snapshot.docs.isNotEmpty &&
+                                                                      snapshot.docs.first.data()[AppStrings
+                                                                              .passwordField] ==
+                                                                          password) {
+                                                                    await FirebaseFirestore.instance
+                                                                        .collection(AppStrings.certificationsCollection)
+                                                                        .doc(docId)
+                                                                        .delete();
+                                                                    Navigator.pop(ctx);
+                                                                    Navigator.pop(context);
+                                                                    onDeleted?.call();
+                                                                  } else {
+                                                                    Navigator.pop(ctx);
+                                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                                      const SnackBar(
+                                                                        content: Text(AppStrings.passwordIncorrect),
+                                                                      ),
+                                                                    );
+                                                                  }
+                                                                },
+                                                                child: const Text(AppStrings.delete),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+
+                                            // Display AI metadata if available
+                                            CertificationMetadataWidget(certification: cert, isCompact: true),
+
                                             const SizedBox(height: 4),
                                             if (content.isNotEmpty)
                                               Expanded(
                                                 child: Text(
                                                   content,
-                                                  style: const TextStyle(fontSize: 14),
-                                                  maxLines: 3,
+                                                  style: const TextStyle(fontSize: 12),
+                                                  maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
                                               ),

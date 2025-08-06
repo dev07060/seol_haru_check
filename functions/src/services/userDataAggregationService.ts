@@ -6,10 +6,17 @@
  * protection measures.
  */
 
-import {getFirestore, Timestamp} from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 
-const db = getFirestore();
+// Lazy initialization to avoid module loading order issues
+let db: any = null;
+function getDb() {
+  if (!db) {
+    db = getFirestore();
+  }
+  return db;
+}
 
 /**
  * Interface for raw certification data from Firestore
@@ -56,9 +63,9 @@ interface WeeklyStats {
   totalCertifications: number;
   exerciseDays: number;
   dietDays: number;
-  exerciseTypes: {[key: string]: number};
+  exerciseTypes: { [key: string]: number };
   consistencyScore: number;
-  dailyBreakdown: {[day: string]: {exercise: number; diet: number}};
+  dailyBreakdown: { [day: string]: { exercise: number; diet: number } };
 }
 
 /**
@@ -156,9 +163,8 @@ export class UserDataAggregationService {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      throw new Error(`Failed to aggregate user data: ${
-        error instanceof Error ? error.message : String(error)
-      }`);
+      throw new Error(`Failed to aggregate user data: ${error instanceof Error ? error.message : String(error)
+        }`);
     }
   }
 
@@ -175,7 +181,7 @@ export class UserDataAggregationService {
     weekEndDate: Date
   ): Promise<RawCertificationData[]> {
     try {
-      const certificationsSnapshot = await db
+      const certificationsSnapshot = await getDb()
         .collection("certifications")
         .where("uuid", "==", userUuid)
         .where("createdAt", ">=", Timestamp.fromDate(weekStartDate))
@@ -183,7 +189,7 @@ export class UserDataAggregationService {
         .orderBy("createdAt", "asc")
         .get();
 
-      return certificationsSnapshot.docs.map((doc) => ({
+      return certificationsSnapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       } as RawCertificationData));
@@ -206,7 +212,7 @@ export class UserDataAggregationService {
    */
   private async fetchUserNickname(userUuid: string): Promise<string> {
     try {
-      const userDoc = await db.collection("users").doc(userUuid).get();
+      const userDoc = await getDb().collection("users").doc(userUuid).get();
       return userDoc.exists ?
         userDoc.data()?.nickname || "Unknown User" : "Unknown User";
     } catch (error) {
@@ -289,14 +295,14 @@ export class UserDataAggregationService {
     );
 
     // Calculate exercise types
-    const exerciseTypes: {[key: string]: number} = {};
+    const exerciseTypes: { [key: string]: number } = {};
     exerciseCertifications.forEach((cert) => {
       const exerciseType = this.categorizeExerciseType(cert.content);
       exerciseTypes[exerciseType] = (exerciseTypes[exerciseType] || 0) + 1;
     });
 
     // Calculate daily breakdown
-    const dailyBreakdown: {[day: string]: {exercise: number; diet: number}} =
+    const dailyBreakdown: { [day: string]: { exercise: number; diet: number } } =
       {};
     const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -304,18 +310,16 @@ export class UserDataAggregationService {
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStartDate);
       date.setDate(date.getDate() + i);
-      const dayKey = `${date.getMonth() + 1}/${date.getDate()}(${
-        dayNames[date.getDay()]
-      })`;
-      dailyBreakdown[dayKey] = {exercise: 0, diet: 0};
+      const dayKey = `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]
+        })`;
+      dailyBreakdown[dayKey] = { exercise: 0, diet: 0 };
     }
 
     // Count certifications by day
     certifications.forEach((cert) => {
       const date = cert.createdAt;
-      const dayKey = `${date.getMonth() + 1}/${date.getDate()}(${
-        dayNames[date.getDay()]
-      })`;
+      const dayKey = `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]
+        })`;
       if (dailyBreakdown[dayKey]) {
         if (cert.type === "운동") {
           dailyBreakdown[dayKey].exercise++;
@@ -360,10 +364,10 @@ export class UserDataAggregationService {
     const lowerContent = content.toLowerCase();
 
     if (lowerContent.includes("러닝") || lowerContent.includes("달리기") ||
-        lowerContent.includes("조깅")) {
+      lowerContent.includes("조깅")) {
       return "러닝/조깅";
     } else if (lowerContent.includes("헬스") || lowerContent.includes("웨이트") ||
-               lowerContent.includes("근력")) {
+      lowerContent.includes("근력")) {
       return "헬스/웨이트";
     } else if (lowerContent.includes("요가") || lowerContent.includes("필라테스")) {
       return "요가/필라테스";
@@ -374,7 +378,7 @@ export class UserDataAggregationService {
     } else if (lowerContent.includes("걷기") || lowerContent.includes("산책")) {
       return "걷기/산책";
     } else if (lowerContent.includes("축구") || lowerContent.includes("농구") ||
-               lowerContent.includes("배구") || lowerContent.includes("테니스")) {
+      lowerContent.includes("배구") || lowerContent.includes("테니스")) {
       return "구기종목";
     } else if (lowerContent.includes("등산") || lowerContent.includes("하이킹")) {
       return "등산/하이킹";
@@ -393,7 +397,7 @@ export class UserDataAggregationService {
   ): boolean {
     // Check if user has at least 3 certifications total
     if (certifications.length <
-        UserDataAggregationService.MINIMUM_DAYS_REQUIRED) {
+      UserDataAggregationService.MINIMUM_DAYS_REQUIRED) {
       return false;
     }
 
@@ -442,14 +446,14 @@ export class UserDataAggregationService {
     weekEndDate: Date
   ): Promise<string[]> {
     try {
-      const certificationsSnapshot = await db
+      const certificationsSnapshot = await getDb()
         .collection("certifications")
         .where("createdAt", ">=", Timestamp.fromDate(weekStartDate))
         .where("createdAt", "<=", Timestamp.fromDate(weekEndDate))
         .get();
 
       const userUuids = new Set<string>();
-      certificationsSnapshot.docs.forEach((doc) => {
+      certificationsSnapshot.docs.forEach((doc: any) => {
         const data = doc.data();
         if (data.uuid) {
           userUuids.add(data.uuid);
@@ -487,7 +491,7 @@ export class UserDataAggregationService {
     });
 
     const results: UserWeekData[] = [];
-    const errors: {userUuid: string; error: string}[] = [];
+    const errors: { userUuid: string; error: string }[] = [];
 
     // Process users in batches to avoid overwhelming the system
     const batchSize = 10;

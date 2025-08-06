@@ -12,6 +12,7 @@ import 'package:seol_haru_check/shared/components/f_chip.dart';
 import 'package:seol_haru_check/shared/components/f_scaffold.dart';
 import 'package:seol_haru_check/shared/themes/f_colors.dart';
 import 'package:seol_haru_check/shared/themes/f_font_styles.dart';
+import 'package:seol_haru_check/widgets/certification_metadata_widget.dart';
 import 'package:seol_haru_check/widgets/feed_page_indicator.dart';
 import 'package:seol_haru_check/widgets/firebase_storage_image.dart';
 import 'package:seol_haru_check/widgets/full_screen_image_viewer.dart';
@@ -179,23 +180,41 @@ class _OtherUserFeedPageState extends ConsumerState<OtherUserFeedPage> {
                                   ],
                                 ),
                                 const Gap(16),
-                                if (cert.content.isNotEmpty)
-                                  Expanded(
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: fColors.backgroundNormalA,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: SingleChildScrollView(
-                                        child: Text(
-                                          cert.content,
-                                          style: FTextStyles.bodyM.copyWith(color: fColors.labelNormal, height: 1.6),
+
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Display AI metadata if available
+                                      CertificationMetadataWidget(certification: cert),
+                                      if (cert.metadataProcessed &&
+                                          (cert.exerciseMetadata != null || cert.dietMetadata != null))
+                                        const Gap(12),
+
+                                      // Display content if available
+                                      if (cert.content.isNotEmpty)
+                                        Expanded(
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: fColors.backgroundNormalA,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: SingleChildScrollView(
+                                              child: Text(
+                                                cert.content,
+                                                style: FTextStyles.bodyM.copyWith(
+                                                  color: fColors.labelNormal,
+                                                  height: 1.6,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
+                                    ],
                                   ),
+                                ),
                               ],
                             ),
                           ),

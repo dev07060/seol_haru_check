@@ -8,7 +8,14 @@ import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { vertexAIService } from "../services/vertexAIService";
 
-const db = getFirestore();
+// Lazy initialization to avoid module loading order issues
+let db: any = null;
+function getDb() {
+    if (!db) {
+        db = getFirestore();
+    }
+    return db;
+}
 
 /**
  * Health Check Endpoint
@@ -31,7 +38,7 @@ export const healthCheck = onRequest({
 
         // Check Firestore connectivity
         try {
-            await db.collection("health").doc("test").get();
+            await getDb().collection("health").doc("test").get();
             healthStatus.services.firestore = "healthy";
         } catch (error) {
             healthStatus.services.firestore = "unhealthy";
@@ -69,7 +76,6 @@ export const healthCheck = onRequest({
             responseTime,
             services: healthStatus.services,
         });
-
     } catch (error) {
         logger.error("Health check failed", { error });
         response.status(500).json({
@@ -94,7 +100,7 @@ export const collectMetrics = onSchedule({
         const timestamp = new Date();
 
         // Collect queue metrics
-        const queueSnapshot = await db.collection("analysisQueue")
+        const queueSnapshot = await getDb().collection("analysisQueue")
             .where("createdAt", ">=", new Date(Date.now() - 24 * 60 * 60 * 1000))
             .get();
 
@@ -106,7 +112,7 @@ export const collectMetrics = onSchedule({
             failed: 0,
         };
 
-        queueSnapshot.docs.forEach(doc => {
+        queueSnapshot.docs.forEach((doc: any) => {
             const status = doc.data().status;
             if (status in queueMetrics) {
                 queueMetrics[status as keyof typeof queueMetrics]++;
@@ -114,7 +120,7 @@ export const collectMetrics = onSchedule({
         });
 
         // Collect report metrics
-        const reportsSnapshot = await db.collection("weeklyReports")
+        const reportsSnapshot = await getDb().collection("weeklyReports")
             .where("generatedAt", ">=", new Date(Date.now() - 24 * 60 * 60 * 1000))
             .get();
 
@@ -125,7 +131,7 @@ export const collectMetrics = onSchedule({
             motivational: 0,
         };
 
-        reportsSnapshot.docs.forEach(doc => {
+        reportsSnapshot.docs.forEach((doc: any) => {
             const data = doc.data();
             if (data.generatedBy === "vertexai") reportMetrics.aiGenerated++;
             else if (data.generatedBy === "fallback") reportMetrics.fallbackGenerated++;
@@ -136,7 +142,7 @@ export const collectMetrics = onSchedule({
         const rateLimitStatus = vertexAIService.getRateLimitStatus();
 
         // Store metrics
-        await db.collection("systemMetrics").add({
+        await getDb().collection("systemMetrics").add({
             timestamp,
             queue: queueMetrics,
             reports: reportMetrics,
@@ -149,7 +155,6 @@ export const collectMetrics = onSchedule({
             reports: reportMetrics,
             vertexAI: rateLimitStatus,
         });
-
     } catch (error) {
         logger.error("Failed to collect metrics", { error });
     }
@@ -170,7 +175,7 @@ export const checkAlerts = onSchedule({
         const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
         // Check for stuck queue items
-        const stuckQueueSnapshot = await db.collection("analysisQueue")
+        const stuckQueueSnapshot = await getDb().collection("analysisQueue")
             .where("status", "==", "processing")
             .where("processedAt", "<=", tenMinutesAgo)
             .get();
@@ -178,7 +183,7 @@ export const checkAlerts = onSchedule({
         if (!stuckQueueSnapshot.empty) {
             logger.warn(`Found ${stuckQueueSnapshot.size} stuck queue items`, {
                 count: stuckQueueSnapshot.size,
-                items: stuckQueueSnapshot.docs.map(doc => ({
+                items: stuckQueueSnapshot.docs.map((doc: any) => ({
                     id: doc.id,
                     userUuid: doc.data().userUuid,
                     processedAt: doc.data().processedAt?.toDate?.()?.toISOString(),
@@ -186,8 +191,8 @@ export const checkAlerts = onSchedule({
             });
 
             // Reset stuck items to pending
-            const batch = db.batch();
-            stuckQueueSnapshot.docs.forEach(doc => {
+            const batch = getDb().batch();
+            stuckQueueSnapshot.docs.forEach((doc: any) => {
                 batch.update(doc.ref, {
                     status: "pending",
                     processedAt: null,
@@ -198,13 +203,13 @@ export const checkAlerts = onSchedule({
         }
 
         // Check for high failure rate
-        const recentQueueSnapshot = await db.collection("analysisQueue")
+        const recentQueueSnapshot = await getDb().collection("analysisQueue")
             .where("createdAt", ">=", new Date(now.getTime() - 60 * 60 * 1000))
             .get();
 
         if (recentQueueSnapshot.size > 0) {
             const failedCount = recentQueueSnapshot.docs.filter(
-                doc => doc.data().status === "failed"
+                (doc: any) => doc.data().status === "failed"
             ).length;
 
             const failureRate = failedCount / recentQueueSnapshot.size;
@@ -220,10 +225,10 @@ export const checkAlerts = onSchedule({
 
         // Check VertexAI rate limits
         const rateLimitStatus = vertexAIService.getRateLimitStatus();
-        if (rateLimitStatus.requestsInLastMinute > rateLimitStatus.maxRequestsPerMinute * 0.9) {
+        if (rateLimitStatus.requestsInLastMinute && rateLimitStatus.maxRequestsPerMinute &&
+            rateLimitStatus.requestsInLastMinute > rateLimitStatus.maxRequestsPerMinute * 0.9) {
             logger.warn("VertexAI rate limit approaching", rateLimitStatus);
         }
-
     } catch (error) {
         logger.error("Alert check failed", { error });
     }

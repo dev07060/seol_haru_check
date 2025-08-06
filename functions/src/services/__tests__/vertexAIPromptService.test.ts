@@ -139,7 +139,7 @@ describe("VertexAIPromptService", () => {
         });
     });
 
-    describe("generateExerciseAnalysisPrompt", () => {
+    describe("generateExerciseAnalysisPrompt (Weekly Report)", () => {
         it("should generate exercise-focused analysis prompt", () => {
             const prompt = promptService.generateExerciseAnalysisPrompt(sampleUserData);
 
@@ -167,7 +167,7 @@ describe("VertexAIPromptService", () => {
         });
     });
 
-    describe("generateDietAnalysisPrompt", () => {
+    describe("generateDietAnalysisPrompt (Weekly Report)", () => {
         it("should generate diet-focused analysis prompt", () => {
             const prompt = promptService.generateDietAnalysisPrompt(sampleUserData);
 
@@ -375,6 +375,218 @@ describe("VertexAIPromptService", () => {
 
             expect(prompt).toContain("일관성 점수(57%)");
             expect(prompt).toContain("일관성 점수: 57%");
+        });
+    });
+
+    describe("generateExerciseImageAnalysisPrompt", () => {
+        it("should generate ultra-short Korean prompt for exercise image analysis", () => {
+            const imageData = "base64-encoded-image-data";
+            const prompt = promptService.generateExerciseImageAnalysisPrompt(imageData);
+
+            expect(prompt).toContain("운동 이미지 분석");
+            expect(prompt).toContain("JSON만 응답");
+            expect(prompt).toContain("exerciseType");
+            expect(prompt).toContain("duration");
+            expect(prompt).toContain("timePeriod");
+            expect(prompt).toContain("intensity");
+            expect(prompt).toContain("오전/오후/저녁");
+            expect(prompt).toContain("낮음/보통/높음");
+            expect(prompt).toContain("불명확시 null");
+            expect(prompt).toContain("설명 없이 JSON만");
+
+            // Verify it's ultra-short for cost optimization
+            expect(prompt.length).toBeLessThan(200);
+        });
+    });
+
+    describe("generateDietImageAnalysisPrompt", () => {
+        it("should generate ultra-short Korean prompt for diet image analysis", () => {
+            const imageData = "base64-encoded-image-data";
+            const prompt = promptService.generateDietImageAnalysisPrompt(imageData);
+
+            expect(prompt).toContain("음식 이미지 분석");
+            expect(prompt).toContain("JSON만 응답");
+            expect(prompt).toContain("mainIngredients");
+            expect(prompt).toContain("foodCategory");
+            expect(prompt).toContain("mealTime");
+            expect(prompt).toContain("estimatedCalories");
+            expect(prompt).toContain("최대 5개 재료");
+            expect(prompt).toContain("불명확시 null");
+            expect(prompt).toContain("설명 없이 JSON만");
+
+            // Verify it's ultra-short for cost optimization
+            expect(prompt.length).toBeLessThan(200);
+        });
+    });
+
+    describe("parseExerciseMetadata", () => {
+        it("should parse valid JSON response", () => {
+            const aiResponse = '{"exerciseType":"러닝","duration":30,"timePeriod":"오전","intensity":"보통"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.exerciseType).toBe("러닝");
+            expect(result.duration).toBe(30);
+            expect(result.timePeriod).toBe("오전");
+            expect(result.intensity).toBe("보통");
+            expect(result.extractedAt).toBeInstanceOf(Date);
+        });
+
+        it("should handle null values correctly", () => {
+            const aiResponse = '{"exerciseType":"요가","duration":null,"timePeriod":"저녁","intensity":"낮음"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.exerciseType).toBe("요가");
+            expect(result.duration).toBeNull();
+            expect(result.timePeriod).toBe("저녁");
+            expect(result.intensity).toBe("낮음");
+        });
+
+        it("should normalize time period values", () => {
+            const aiResponse = '{"exerciseType":"러닝","duration":30,"timePeriod":"morning","intensity":"보통"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.timePeriod).toBe("오전");
+        });
+
+        it("should normalize intensity values", () => {
+            const aiResponse = '{"exerciseType":"러닝","duration":30,"timePeriod":"오전","intensity":"high"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.intensity).toBe("높음");
+        });
+
+        it("should handle malformed JSON gracefully", () => {
+            const aiResponse = "Invalid response without JSON";
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.exerciseType).toBeNull();
+            expect(result.duration).toBeNull();
+            expect(result.timePeriod).toBeNull();
+            expect(result.intensity).toBeNull();
+            expect(result.extractedAt).toBeInstanceOf(Date);
+        });
+
+        it("should extract JSON from response with extra text", () => {
+            const aiResponse = 'Here is the analysis: {"exerciseType":"웨이트 트레이닝","duration":45,"timePeriod":"오후","intensity":"높음"} Hope this helps!';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.exerciseType).toBe("웨이트 트레이닝");
+            expect(result.duration).toBe(45);
+            expect(result.timePeriod).toBe("오후");
+            expect(result.intensity).toBe("높음");
+        });
+    });
+
+    describe("parseDietMetadata", () => {
+        it("should parse valid JSON response", () => {
+            const aiResponse = '{"mainIngredients":["쌀","김치","계란"],"foodCategory":"한식","mealTime":"점심","estimatedCalories":450}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual(["쌀", "김치", "계란"]);
+            expect(result.foodCategory).toBe("한식");
+            expect(result.mealTime).toBe("점심");
+            expect(result.estimatedCalories).toBe(450);
+            expect(result.extractedAt).toBeInstanceOf(Date);
+        });
+
+        it("should limit ingredients to 5 items", () => {
+            const aiResponse = '{"mainIngredients":["쌀","김치","계란","당근","양파","마늘","고추"],"foodCategory":"한식","mealTime":"저녁","estimatedCalories":600}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toHaveLength(5);
+            expect(result.mainIngredients).toEqual(["쌀", "김치", "계란", "당근", "양파"]);
+        });
+
+        it("should normalize food category values", () => {
+            const aiResponse = '{"mainIngredients":["pasta","tomato"],"foodCategory":"western","mealTime":"점심","estimatedCalories":400}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.foodCategory).toBe("양식");
+        });
+
+        it("should normalize meal time values", () => {
+            const aiResponse = '{"mainIngredients":["cereal","milk"],"foodCategory":"양식","mealTime":"breakfast","estimatedCalories":300}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mealTime).toBe("아침");
+        });
+
+        it("should handle malformed JSON gracefully", () => {
+            const aiResponse = "Invalid response without JSON";
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual([]);
+            expect(result.foodCategory).toBeNull();
+            expect(result.mealTime).toBeNull();
+            expect(result.estimatedCalories).toBeNull();
+            expect(result.extractedAt).toBeInstanceOf(Date);
+        });
+
+        it("should handle null values correctly", () => {
+            const aiResponse = '{"mainIngredients":["쌀","김치"],"foodCategory":null,"mealTime":"간식","estimatedCalories":null}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual(["쌀", "김치"]);
+            expect(result.foodCategory).toBeNull();
+            expect(result.mealTime).toBe("간식");
+            expect(result.estimatedCalories).toBeNull();
+        });
+
+        it("should extract JSON from response with extra text", () => {
+            const aiResponse = 'Analysis result: {"mainIngredients":["빵","버터"],"foodCategory":"간식","mealTime":"간식","estimatedCalories":200} End of analysis.';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual(["빵", "버터"]);
+            expect(result.foodCategory).toBe("간식");
+            expect(result.mealTime).toBe("간식");
+            expect(result.estimatedCalories).toBe(200);
+        });
+    });
+
+    describe("metadata normalization", () => {
+        it("should normalize empty strings to null", () => {
+            const aiResponse = '{"exerciseType":"","duration":30,"timePeriod":"오전","intensity":"보통"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.exerciseType).toBeNull();
+        });
+
+        it("should normalize invalid numbers to null", () => {
+            const aiResponse = '{"exerciseType":"러닝","duration":"invalid","timePeriod":"오전","intensity":"보통"}';
+
+            const result = promptService.parseExerciseMetadata(aiResponse);
+
+            expect(result.duration).toBeNull();
+        });
+
+        it("should filter out null ingredients", () => {
+            const aiResponse = '{"mainIngredients":["쌀",null,"김치",""],"foodCategory":"한식","mealTime":"점심","estimatedCalories":450}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual(["쌀", "김치"]);
+        });
+
+        it("should handle non-array ingredients gracefully", () => {
+            const aiResponse = '{"mainIngredients":"not an array","foodCategory":"한식","mealTime":"점심","estimatedCalories":450}';
+
+            const result = promptService.parseDietMetadata(aiResponse);
+
+            expect(result.mainIngredients).toEqual([]);
         });
     });
 });
